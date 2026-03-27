@@ -9,9 +9,25 @@ Aplikasi mobile panduan ibadah shalat berbasis Flutter. Dibuat untuk Tugas Kelom
 | Fitur | Deskripsi | Status |
 |-------|-----------|--------|
 | 🏠 **Beranda** | Jadwal shalat harian, countdown waktu shalat berikutnya | ✅ Selesai |
-| 📖 **Panduan** | Tata cara shalat wajib, langkah wudhu, dan kumpulan doa | ✅ Selesai |
-| 🧭 **Kiblat** | Kompas arah kiblat | 🔄 Dalam Pengembangan |
+| 📖 **Al-Qur'an** | Teks Arab, latin, terjemahan surah (berbasis API) | ✅ Selesai |
+| 📚 **Panduan** | Tata cara shalat wajib, wudhu, doa, dan dzikir (Offline) | ✅ Selesai |
+| 🧭 **Kiblat** | Kompas penunjuk arah kiblat | 🔄 Dalam Pengembangan |
 | ⚙️ **Lainnya** | Profil, tasbih digital, pengaturan | 🔄 Dalam Pengembangan |
+
+---
+
+## 🌐 Integrasi API
+
+Aplikasi ini menggunakan beberapa RESTful API eksternal pihak ketiga untuk mendatangkan data secara dinamis dan *real-time*:
+
+1. **[MyQuran API v2](https://api.myquran.com/)**
+   - Mengambil data seluruh kota/kabupaten di Indonesia.
+   - Mengambil data jadwal shalat akurat berdasarkan ID kota untuk keperluan hari ini dan prediksi bulanan.
+2. **[EQuran.id API v2](https://equran.id/)**
+   - Mendapatkan daftar kumpulan surah Al-Qur'an.
+   - Mengambil detail ayat per ayat secara dinamis, mencakup teks Arab, transliterasi Latin, dan terjemahan bahasa Indonesia.
+
+*Catatan: Fitur Panduan Ibadah (Shalat, Wudhu, Doa) beroperasi sepenuhnya secara luring (offline) berkat integrasi data internal statis di dalam *source code*.*
 
 ---
 

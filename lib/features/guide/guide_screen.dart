@@ -207,11 +207,46 @@ class _GuideScreenState extends State<GuideScreen>
 
 
   static const List<_DoaItem> _allDoas = [
-    _DoaItem(title: 'Doa Setelah Wudhu', arabic: 'أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا اللّٰهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ'),
-    _DoaItem(title: 'Doa Masuk Masjid', arabic: 'اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ'),
-    _DoaItem(title: 'Doa Keluar Masjid', arabic: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ'),
-    _DoaItem(title: 'Doa Iftitah', arabic: 'اللهُ أَكْبَرُ كَبِيراً وَالْحَمْدُ لِلَّهِ كَثِيراً'),
-    _DoaItem(title: 'Doa Qunut', arabic: 'اللَّهُمَّ اهْدِنِي فِيمَنْ هَدَيْتَ'),
+    _DoaItem(
+      title: 'Doa Setelah Wudhu',
+      arabic:
+          'أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا اللّٰهُ وَحْدَهُ لَا شَرِيكَ لَهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ',
+      latin:
+          "Asyhadu allā ilāha illallāhu waḥdahū lā syarīka lahu, wa asyhadu anna Muḥammadan 'abduhū wa rasūluh.",
+      translation:
+          'Aku bersaksi bahwa tidak ada tuhan selain Allah semata, tidak ada sekutu bagi-Nya, dan aku bersaksi bahwa Muhammad adalah hamba dan utusan-Nya.',
+    ),
+    _DoaItem(
+      title: 'Doa Masuk Masjid',
+      arabic: 'اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ',
+      latin: 'Allāhummaftaḥ lī abwāba raḥmatik.',
+      translation: 'Ya Allah, bukakanlah untukku pintu-pintu rahmat-Mu.',
+    ),
+    _DoaItem(
+      title: 'Doa Keluar Masjid',
+      arabic:
+          'اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ',
+      latin: 'Allāhumma innī as-aluka min faḍlik.',
+      translation: 'Ya Allah, sesungguhnya aku memohon kepada-Mu dari karunia-Mu.',
+    ),
+    _DoaItem(
+      title: 'Doa Iftitah',
+      arabic:
+          'اللهُ أَكْبَرُ كَبِيرًا وَالْحَمْدُ لِلَّهِ كَثِيرًا وَسُبْحَانَ اللَّهِ بُكْرَةً وَأَصِيلًا',
+      latin:
+          'Allāhu akbaru kabīrā, wal-ḥamdu lillāhi kaṡīrā, wa subḥānallāhi bukratan wa aṣīlā.',
+      translation:
+          'Allah Maha Besar dengan segala kebesaran. Segala puji bagi Allah dengan pujian yang banyak. Maha Suci Allah di waktu pagi dan petang.',
+    ),
+    _DoaItem(
+      title: 'Doa Qunut',
+      arabic:
+          'اللَّهُمَّ اهْدِنِي فِيمَنْ هَدَيْتَ وَعَافِنِي فِيمَنْ عَافَيْتَ وَتَوَلَّنِي فِيمَنْ تَوَلَّيْتَ وَبَارِكْ لِي فِيمَا أَعْطَيْتَ وَقِنِي شَرَّ مَا قَضَيْتَ',
+      latin:
+          "Allāhummahdinī fīman hadayt, wa 'āfinī fīman 'āfayt, wa tawallanī fīman tawallayt, wa bārik lī fīmā a'ṭayt, wa qinī syarra mā qaḍayt.",
+      translation:
+          'Ya Allah, tunjukilah aku di antara orang-orang yang Engkau beri petunjuk, sehatkanlah aku di antara orang-orang yang Engkau sehatkan, pimpinlah aku di antara orang-orang yang Engkau pimpin, berkahilah aku pada apa yang Engkau berikan, dan jagalah aku dari keburukan apa yang telah Engkau tetapkan.',
+    ),
   ];
 
   @override
@@ -500,56 +535,199 @@ class _GuideScreenState extends State<GuideScreen>
       itemCount: duas.length,
       itemBuilder: (context, i) {
         final d = duas[i];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withAlpha(8),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2))
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.emeraldGreen.withAlpha(25),
-                  borderRadius: BorderRadius.circular(12),
+        return GestureDetector(
+          onTap: () => _showDoaDetail(context, d),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withAlpha(8),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2))
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.emeraldGreen.withAlpha(25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.menu_book,
+                      color: AppColors.emeraldGreen, size: 22),
                 ),
-                child: const Icon(Icons.menu_book, color: AppColors.emeraldGreen, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(d.title,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.black87)),
-                    const SizedBox(height: 4),
-                    Text(d.arabic,
-                        style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 12,
-                            fontFamily: 'serif'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                  ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(d.title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.black87)),
+                      const SizedBox(height: 4),
+                      Text(d.arabic,
+                          style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right, color: Colors.grey.shade300),
-            ],
+                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  void _showDoaDetail(BuildContext context, _DoaItem doa) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        builder: (_, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.emeraldGreen.withAlpha(25),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.menu_book,
+                          color: AppColors.emeraldGreen, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        doa.title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close, color: Colors.grey.shade400),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: Colors.grey.shade100),
+              // Scrollable content
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Arabic
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5FAF7),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          doa.arabic,
+                          textAlign: TextAlign.right,
+                          textDirection: TextDirection.rtl,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            color: Colors.black87,
+                            height: 1.9,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Latin
+                      Text(
+                        doa.latin,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                          height: 1.7,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Translation
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.emeraldGreen.withAlpha(15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.emeraldGreen.withAlpha(40),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.format_quote,
+                                color: AppColors.emeraldGreen.withAlpha(150),
+                                size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                doa.translation,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade700,
+                                  height: 1.7,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -638,8 +816,13 @@ class _PrayerGuide {
 
 
 class _DoaItem {
-  final String title, arabic;
-  const _DoaItem({required this.title, required this.arabic});
+  final String title, arabic, latin, translation;
+  const _DoaItem({
+    required this.title,
+    required this.arabic,
+    required this.latin,
+    required this.translation,
+  });
 }
 
 // ── Dzikir Card Widget ────────────────────────────────────────────────────────
