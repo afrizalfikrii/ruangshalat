@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:ruang_shalat/core/constants/app_colors.dart';
 import 'package:ruang_shalat/models/prayer_schedule.dart';
 import 'package:ruang_shalat/services/myquran_service.dart';
@@ -24,16 +26,14 @@ class _HomeScreenState extends State<HomeScreen> {
   SharedPreferences? _prefs;
   final Map<String, bool> _activeNotifications = {};
 
-  // Default city: Karanganyar (id: 1411 from kemenag / myquran API)
-  // We'll search dynamically; default to kota terdekat
-  static const _defaultKotaId = '1411'; // Karanganyar
-  static const _defaultKotaName = 'Karanganyar';
+  String _currentKotaId = '1411'; 
+  String _currentKotaName = 'Mencari lokasi...';
 
   @override
   void initState() {
     super.initState();
     _initPrefs();
-    _fetchSchedule();
+    _initLocationAndFetchSchedule();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_schedule != null && mounted) {
         setState(() => _remaining = _schedule!.durationUntilNext());
@@ -55,6 +55,14 @@ class _HomeScreenState extends State<HomeScreen> {
       _activeNotifications['Ashar'] = _prefs?.getBool('notif_Ashar') ?? false;
       _activeNotifications['Maghrib'] = _prefs?.getBool('notif_Maghrib') ?? false;
       _activeNotifications['Isya'] = _prefs?.getBool('notif_Isya') ?? false;
+
+      // Load cached location if exists
+      final savedKotaId = _prefs?.getString('kotaId');
+      final savedKotaName = _prefs?.getString('kotaName');
+      if (savedKotaId != null && savedKotaName != null) {
+        _currentKotaId = savedKotaId;
+        _currentKotaName = savedKotaName;
+      }
     });
   }
 
@@ -87,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
         await NotificationService().schedulePrayerNotification(
           id: id,
           title: 'Waktunya Shalat $prayerName',
-          body: 'Telah masuk waktu shalat $prayerName wilayah $_defaultKotaName.',
+          body: 'Telah masuk waktu shalat $prayerName wilayah $_currentKotaName.',
           scheduledTime: scheduledTime,
         );
         
@@ -118,6 +126,84 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _initLocationAndFetchSchedule() async {
+    if (!mounted) return;
+    
+    // Jika sudah ada cache, langsung fetch jadwal saja
+    if (_prefs?.getString('kotaId') != null) {
+      await _fetchSchedule();
+      return;
+    }
+
+    await _forceUpdateLocation();
+  }
+
+  Future<void> _forceUpdateLocation() async {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+      _currentKotaName = 'Mencari lokasi...';
+    });
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) throw Exception('GPS dinonaktifkan.');
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Izin lokasi ditolak.');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Izin lokasi ditolak permanen.');
+      }
+
+      // Gunakan posisi terakhir yang diketahui agar lebih cepat, jika null baru cari baru
+      Position? position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 10),
+          ));
+
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude, position.longitude);
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        String cityName =
+            place.subAdministrativeArea ?? place.locality ?? 'Jakarta';
+        cityName = cityName
+            .replaceAll('Kab. ', '')
+            .replaceAll('Kabupaten ', '')
+            .replaceAll('Kota ', '')
+            .trim();
+
+        List<KotaResult> searchResults =
+            await MyQuranService.searchKota(cityName);
+        if (searchResults.isNotEmpty) {
+          _currentKotaId = searchResults.first.id;
+          _currentKotaName = searchResults.first.lokasi;
+          
+          // Simpan ke cache
+          await _prefs?.setString('kotaId', _currentKotaId);
+          await _prefs?.setString('kotaName', _currentKotaName);
+        } else {
+          _currentKotaName = cityName;
+        }
+      }
+    } catch (e) {
+      _currentKotaId = '1411';
+      _currentKotaName = 'Karanganyar (Default)';
+    }
+
+    await _fetchSchedule();
+  }
+
   Future<void> _fetchSchedule() async {
     if (!mounted) return;
     setState(() {
@@ -125,14 +211,14 @@ class _HomeScreenState extends State<HomeScreen> {
       _error = null;
     });
     final schedule = await MyQuranService.getPrayerSchedule(
-      kotaId: _defaultKotaId,
+      kotaId: _currentKotaId,
       date: DateTime.now(),
     );
     if (!mounted) return;
     setState(() {
       _schedule = schedule;
       _loading = false;
-      _error = schedule == null ? 'Gagal memuat jadwal. Cek koneksi internet.' : null;
+      _error = schedule == null ? 'Gagal memuat jadwal.' : null;
       if (schedule != null) _remaining = schedule.durationUntilNext();
     });
   }
@@ -186,20 +272,30 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Location & Date ─────────────────────────────────────
-                Row(
-                  children: [
-                    const Icon(Icons.location_on,
-                        color: AppColors.emeraldGreen, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      _defaultKotaName,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Memperbarui lokasi GPS...')),
+                    );
+                    _forceUpdateLocation();
+                  },
+                  child: Row(
+                    children: [
+                      const Icon(Icons.location_on,
+                          color: AppColors.emeraldGreen, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        _currentKotaName,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      const Icon(Icons.refresh, color: Colors.grey, size: 14),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -257,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // ── Footer ───────────────────────────────────────────────
                 Center(
                   child: Text(
-                    'Berdasarkan data Kemenag RI · $_defaultKotaName',
+                    'Berdasarkan data Kemenag RI · $_currentKotaName',
                     style: const TextStyle(
                       color: AppColors.emeraldGreen,
                       fontSize: 11,
