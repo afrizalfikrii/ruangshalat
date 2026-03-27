@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:ruang_shalat/core/theme/app_theme.dart';
 import 'package:ruang_shalat/features/guide/guide_screen.dart';
 import 'package:ruang_shalat/features/home/home_screen.dart';
+import 'package:ruang_shalat/features/quran/quran_screen.dart';
+import 'package:ruang_shalat/services/notification_service.dart';
 import 'package:ruang_shalat/shared/widgets/main_bottom_nav_bar.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().init();
   runApp(const RuangShalatApp());
 }
 
@@ -18,8 +22,19 @@ class RuangShalatApp extends StatelessWidget {
       title: 'Ruang Shalat',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      scrollBehavior: const NoOverscrollBehavior(),
       home: const MainScreen(),
     );
+  }
+}
+
+class NoOverscrollBehavior extends ScrollBehavior {
+  const NoOverscrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+      BuildContext context, Widget child, ScrollableDetails details) {
+    return child;
   }
 }
 
@@ -33,12 +48,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // Daftar halaman (Nanti diganti dengan file UI dari folder features/)
   final List<Widget> _pages = const <Widget>[
     HomeScreen(),
     GuideScreen(),
-    Center(child: Text('Halaman Kiblat', style: TextStyle(fontSize: 24))),
-    Center(child: Text('Halaman Lainnya', style: TextStyle(fontSize: 24))),
+    QuranScreen(),
+    Center(child: Text('Kiblat (Segera Hadir)', style: TextStyle(fontSize: 18))),
   ];
 
   void _onItemTapped(int index) {
