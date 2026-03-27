@@ -16,22 +16,10 @@ class MainBottomNavBar extends StatelessWidget {
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
       items: const <BottomNavigationBarItem>[
-        BottomNavigationBarItem(
-          icon: Icon(Icons.mosque),
-          label: 'Beranda',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.menu_book),
-          label: 'Panduan',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.explore),
-          label: 'Kiblat',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.more_horiz),
-          label: 'Lainnya',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.mosque), label: 'Beranda'),
+        BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Panduan'),
+        BottomNavigationBarItem(icon: Icon(Icons.auto_stories), label: 'Al-Qur\'an'),
+        BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: 'Lainnya'),
       ],
       currentIndex: currentIndex,
       selectedItemColor: AppColors.emeraldGreen,
