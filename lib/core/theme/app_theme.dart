@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ruang_shalat/core/constants/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   AppTheme._(); // Prevent instantiation
@@ -9,5 +10,6 @@ class AppTheme {
           seedColor: AppColors.emeraldGreen,
         ),
         useMaterial3: true,
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(),
       );
 }
