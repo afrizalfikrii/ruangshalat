@@ -82,7 +82,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
           ],
         ),
         actions: [
-          // Toggle latin
           IconButton(
             tooltip: 'Latin',
             icon: Icon(
@@ -92,7 +91,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             ),
             onPressed: () => setState(() => _showLatin = !_showLatin),
           ),
-          // Toggle terjemahan
           IconButton(
             tooltip: 'Terjemahan',
             icon: Icon(
@@ -112,7 +110,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                // Arab name badge
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -212,7 +209,6 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   }
 }
 
-// ── Ayat Card ─────────────────────────────────────────────────────────────────
 class _AyatCard extends StatelessWidget {
   final Ayat ayat;
   final Color accentColor;
@@ -244,7 +240,6 @@ class _AyatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Ayat number + copy
           Row(
             children: [
               Container(
@@ -287,7 +282,6 @@ class _AyatCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Arabic text
           Text(
             ayat.arab,
             textAlign: TextAlign.right,
@@ -299,7 +293,6 @@ class _AyatCard extends StatelessWidget {
             ),
           ),
 
-          // Latin
           if (showLatin && ayat.latin.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
@@ -313,7 +306,6 @@ class _AyatCard extends StatelessWidget {
             ),
           ],
 
-          // Terjemahan
           if (showTranslation && ayat.terjemahan.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
@@ -333,7 +325,6 @@ class _AyatCard extends StatelessWidget {
             ),
           ],
 
-          // Juz & page info
           if (ayat.juz > 0 || ayat.page > 0) ...[
             const SizedBox(height: 10),
             Row(

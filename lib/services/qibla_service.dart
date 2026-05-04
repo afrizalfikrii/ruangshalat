@@ -1,13 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-/// Service untuk mengambil arah kiblat dari Aladhan API
-/// Endpoint: GET https://api.aladhan.com/v1/qibla/{lat}/{lng}
 class QiblaService {
   static const String _base = 'https://api.aladhan.com/v1';
 
-  /// Mengembalikan sudut arah kiblat dalam derajat (0–360°) dari Utara.
-  /// Return null jika gagal.
   static Future<double?> getQiblaDirection(double lat, double lng) async {
     final url = Uri.parse('$_base/qibla/$lat/$lng');
     try {

@@ -1,5 +1,3 @@
-/// Models for myquran.com prayer schedule API response
-
 class PrayerSchedule {
   final String imsak;
   final String subuh;
@@ -41,8 +39,6 @@ class PrayerSchedule {
     );
   }
 
-  /// Returns the next upcoming prayer name + time from now.
-  /// Returns null if all prayers have passed today.
   ({String name, String arabic, String time})? nextPrayer() {
     final now = DateTime.now();
 
@@ -62,11 +58,9 @@ class PrayerSchedule {
         if (now.isBefore(pTime)) return (name: p.name, arabic: p.arabic, time: p.time);
       }
     }
-    // All passed, return next Subuh
     return (name: 'Subuh', arabic: 'الفجر', time: subuh);
   }
 
-  /// Duration until the next prayer.
   Duration durationUntilNext() {
     final next = nextPrayer();
     if (next == null) return Duration.zero;
@@ -79,7 +73,6 @@ class PrayerSchedule {
   }
 }
 
-/// Kota search result
 class KotaResult {
   final String id;
   final String lokasi;

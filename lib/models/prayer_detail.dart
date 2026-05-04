@@ -1,4 +1,3 @@
-/// Data model for a single prayer's full detail
 class PrayerDetail {
   final String name;
   final String arabic;
@@ -6,18 +5,14 @@ class PrayerDetail {
   final String timeInfo;
   final String timeDetail;
 
-  // Niat
   final String niatArabic;
   final String niatLatin;
   final String niatTranslation;
 
-  // Rakaat structure
   final List<RakaatInfo> rakaatStructure;
 
-  // Bacaan wajib
   final List<BacaanItem> bacaanWajib;
 
-  // Doa setelah shalat
   final String doaArabic;
   final String doaLatin;
   final String doaTranslation;
@@ -58,12 +53,7 @@ class BacaanItem {
   });
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Seed Data for all 5 prayers
-// ────────────────────────────────────────────────────────────────────────────
-
 const List<PrayerDetail> prayerDetails = [
-  // ── SUBUH ──────────────────────────────────────────────────────────────────
   PrayerDetail(
     name: 'Subuh',
     arabic: 'الصبح',
@@ -123,7 +113,6 @@ const List<PrayerDetail> prayerDetails = [
         'Dari-Mu lah keselamatan. Maha Berkah Engkau wahai Dzat yang memiliki keagungan dan kemuliaan.',
   ),
 
-  // ── DZUHUR ─────────────────────────────────────────────────────────────────
   PrayerDetail(
     name: 'Dzuhur',
     arabic: 'الظهر',
@@ -206,7 +195,6 @@ const List<PrayerDetail> prayerDetails = [
         'Maha Berkah Engkau wahai Dzat yang memiliki keagungan dan kemuliaan.',
   ),
 
-  // ── ASHAR ──────────────────────────────────────────────────────────────────
   PrayerDetail(
     name: 'Ashar',
     arabic: 'العصر',
@@ -289,7 +277,6 @@ const List<PrayerDetail> prayerDetails = [
         'Maha Berkah Engkau wahai Dzat yang memiliki keagungan dan kemuliaan.',
   ),
 
-  // ── MAGHRIB ────────────────────────────────────────────────────────────────
   PrayerDetail(
     name: 'Maghrib',
     arabic: 'المغرب',
@@ -361,7 +348,6 @@ const List<PrayerDetail> prayerDetails = [
         'Maha Berkah Engkau wahai Dzat yang memiliki keagungan dan kemuliaan.',
   ),
 
-  // ── ISYA ───────────────────────────────────────────────────────────────────
   PrayerDetail(
     name: 'Isya',
     arabic: 'العشاء',
@@ -445,7 +431,6 @@ const List<PrayerDetail> prayerDetails = [
   ),
 ];
 
-// ── Shared bacaan wajib (sama untuk semua shalat) ──────────────────────────
 const List<BacaanItem> _bacaanUmum = [
   BacaanItem(
     title: 'Doa Iftitah',

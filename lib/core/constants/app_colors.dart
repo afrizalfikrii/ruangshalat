@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  AppColors._(); // Prevent instantiation
+  AppColors._();
 
   static const Color emeraldGreen = Color(0xFF1E6351);
   static const Color emeraldDark = Color(0xFF145240);

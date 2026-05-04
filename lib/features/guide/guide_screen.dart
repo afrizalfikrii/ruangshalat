@@ -3,7 +3,6 @@ import 'package:ruang_shalat/core/constants/app_colors.dart';
 import 'package:ruang_shalat/features/guide/prayer_detail_screen.dart';
 import 'package:ruang_shalat/models/prayer_detail.dart';
 
-// ── Dzikir data model ─────────────────────────────────────────────────────────
 class _DzikirItem {
   final String title;
   final String arabic;
@@ -146,7 +145,6 @@ const List<_DzikirItem> _dzikirSetelahShalat = [
   ),
 ];
 
-// ── GuideScreen ───────────────────────────────────────────────────────────────
 class GuideScreen extends StatefulWidget {
   const GuideScreen({super.key});
 
@@ -203,8 +201,6 @@ class _GuideScreenState extends State<GuideScreen>
       bgColor: Color(0xFFEAF4F0),
     ),
   ];
-
-
 
   static const List<_DoaItem> _allDoas = [
     _DoaItem(
@@ -265,7 +261,6 @@ class _GuideScreenState extends State<GuideScreen>
     super.dispose();
   }
 
-  // ── Filtered lists ────────────────────────────────────────────────────────
   List<_PrayerGuide> get _filteredPrayers => _searchQuery.isEmpty
       ? _allPrayers
       : _allPrayers
@@ -274,8 +269,6 @@ class _GuideScreenState extends State<GuideScreen>
               p.arabic.contains(_searchQuery) ||
               p.rakaat.toLowerCase().contains(_searchQuery))
           .toList();
-
-
 
   List<_DoaItem> get _filteredDoas => _searchQuery.isEmpty
       ? _allDoas
@@ -304,7 +297,6 @@ class _GuideScreenState extends State<GuideScreen>
       ),
       body: Column(
         children: [
-          // ── Search Bar ──────────────────────────────────────────────────
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -331,7 +323,6 @@ class _GuideScreenState extends State<GuideScreen>
             ),
           ),
 
-          // ── Tab Bar ─────────────────────────────────────────────────────
           Container(
             color: Colors.white,
             child: TabBar(
@@ -350,7 +341,6 @@ class _GuideScreenState extends State<GuideScreen>
             ),
           ),
 
-          // ── Tab Views ───────────────────────────────────────────────────
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -367,7 +357,6 @@ class _GuideScreenState extends State<GuideScreen>
     );
   }
 
-  // ── Shalat Wajib Tab ──────────────────────────────────────────────────────
   Widget _buildShalatTab() {
     final prayers = _filteredPrayers;
     return Column(
@@ -526,7 +515,6 @@ class _GuideScreenState extends State<GuideScreen>
     );
   }
 
-  // ── Doa Tab ───────────────────────────────────────────────────────────────
   Widget _buildDoaTab() {
     final duas = _filteredDoas;
     if (duas.isEmpty) return _emptyState('Doa tidak ditemukan');
@@ -607,7 +595,6 @@ class _GuideScreenState extends State<GuideScreen>
           ),
           child: Column(
             children: [
-              // Handle bar
               Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
                 width: 40,
@@ -617,7 +604,6 @@ class _GuideScreenState extends State<GuideScreen>
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              // Header
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
                 child: Row(
@@ -651,7 +637,6 @@ class _GuideScreenState extends State<GuideScreen>
                 ),
               ),
               Divider(height: 1, color: Colors.grey.shade100),
-              // Scrollable content
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
@@ -659,7 +644,6 @@ class _GuideScreenState extends State<GuideScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Arabic
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -678,7 +662,6 @@ class _GuideScreenState extends State<GuideScreen>
                         ),
                       ),
                       const SizedBox(height: 16),
-                      // Latin
                       Text(
                         doa.latin,
                         style: TextStyle(
@@ -689,7 +672,6 @@ class _GuideScreenState extends State<GuideScreen>
                         ),
                       ),
                       const SizedBox(height: 12),
-                      // Translation
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -731,7 +713,6 @@ class _GuideScreenState extends State<GuideScreen>
     );
   }
 
-  // ── Dzikir Tab ────────────────────────────────────────────────────────────
   Widget _buildDzikirTab() {
     return DefaultTabController(
       length: 3,
@@ -775,7 +756,6 @@ class _GuideScreenState extends State<GuideScreen>
     );
   }
 
-  // ── Empty state ───────────────────────────────────────────────────────────
   Widget _emptyState(String message) {
     return Center(
       child: Column(
@@ -798,7 +778,6 @@ class _GuideScreenState extends State<GuideScreen>
   }
 }
 
-// ── Data Models ───────────────────────────────────────────────────────────────
 class _PrayerGuide {
   final String name, arabic, rakaat;
   final IconData icon;
@@ -813,8 +792,6 @@ class _PrayerGuide {
   });
 }
 
-
-
 class _DoaItem {
   final String title, arabic, latin, translation;
   const _DoaItem({
@@ -825,7 +802,6 @@ class _DoaItem {
   });
 }
 
-// ── Dzikir Card Widget ────────────────────────────────────────────────────────
 class _DzikirCard extends StatefulWidget {
   final _DzikirItem item;
   const _DzikirCard({required this.item});
@@ -856,7 +832,6 @@ class _DzikirCardState extends State<_DzikirCard> {
       ),
       child: Column(
         children: [
-          // ── Header row ──────────────────────────────────────────────────
           InkWell(
             onTap: () => setState(() => _expanded = !_expanded),
             borderRadius: BorderRadius.circular(16),
@@ -895,7 +870,6 @@ class _DzikirCardState extends State<_DzikirCard> {
                       ],
                     ),
                   ),
-                  // Counter badge
                   if (_counter > 0)
                     Container(
                       margin: const EdgeInsets.only(right: 8),
@@ -924,7 +898,6 @@ class _DzikirCardState extends State<_DzikirCard> {
             ),
           ),
 
-          // ── Expanded detail ──────────────────────────────────────────────
           if (_expanded)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
@@ -933,7 +906,6 @@ class _DzikirCardState extends State<_DzikirCard> {
                 children: [
                   Divider(color: Colors.grey.shade100, height: 1),
                   const SizedBox(height: 12),
-                  // Arabic
                   Text(
                     item.arabic,
                     textAlign: TextAlign.right,
@@ -942,7 +914,6 @@ class _DzikirCardState extends State<_DzikirCard> {
                         fontSize: 20, color: Colors.black87, height: 1.8),
                   ),
                   const SizedBox(height: 8),
-                  // Latin
                   Text(
                     item.latin,
                     style: TextStyle(
@@ -953,7 +924,6 @@ class _DzikirCardState extends State<_DzikirCard> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // Terjemahan
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -969,7 +939,6 @@ class _DzikirCardState extends State<_DzikirCard> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Counter row
                   Row(
                     children: [
                       Expanded(

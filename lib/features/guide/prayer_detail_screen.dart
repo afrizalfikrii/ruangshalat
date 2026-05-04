@@ -43,7 +43,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
-      // ── AppBar: back button + prayer name langsung berdampingan ──────────
       appBar: AppBar(
         backgroundColor: widget.color,
         foregroundColor: Colors.white,
@@ -108,12 +107,10 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
             ),
           ),
         ],
-        // ── Info waktu di bawah AppBar title ─────────────────────────────
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(80),
           child: Column(
             children: [
-              // Baris waktu
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
@@ -134,7 +131,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
                   ],
                 ),
               ),
-              // TabBar
               TabBar(
                 controller: _tabController,
                 indicatorColor: Colors.white,
@@ -155,7 +151,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
           ),
         ),
       ),
-      // ── Body: TabBarView ─────────────────────────────────────────────────
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -168,7 +163,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
     );
   }
 
-  // ── Tab 1: Niat ─────────────────────────────────────────────────────────────
   Widget _buildNiatTab(PrayerDetail p) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -210,7 +204,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
     );
   }
 
-  // ── Tab 2: Rakaat ────────────────────────────────────────────────────────────
   Widget _buildRakaatTab(PrayerDetail p) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -233,7 +226,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header rakaat
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -280,7 +272,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
                   ],
                 ),
               ),
-              // Steps
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -292,7 +283,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Timeline line + dot
                           SizedBox(
                             width: 28,
                             child: Column(
@@ -358,7 +348,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
     );
   }
 
-  // ── Tab 3: Bacaan ────────────────────────────────────────────────────────────
   Widget _buildBacaanTab(PrayerDetail p) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -370,7 +359,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
     );
   }
 
-  // ── Tab 4: Doa & Waktu ───────────────────────────────────────────────────────
   Widget _buildDoaWaktuTab(PrayerDetail p) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -459,8 +447,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
       ),
     );
   }
-
-  // ── Shared Helpers ───────────────────────────────────────────────────────────
 
   Widget _sectionLabel(String label) {
     return Text(
@@ -586,7 +572,6 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
   }
 }
 
-// ── Bacaan Card widget ────────────────────────────────────────────────────────
 class _BacaanCard extends StatefulWidget {
   final BacaanItem item;
   final Color color;
@@ -615,7 +600,6 @@ class _BacaanCardState extends State<_BacaanCard> {
       ),
       child: Column(
         children: [
-          // Header (always visible)
           InkWell(
             onTap: () => setState(() => _expanded = !_expanded),
             borderRadius: BorderRadius.circular(14),
@@ -668,7 +652,6 @@ class _BacaanCardState extends State<_BacaanCard> {
               ),
             ),
           ),
-          // Expanded content
           if (_expanded)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
@@ -677,7 +660,6 @@ class _BacaanCardState extends State<_BacaanCard> {
                 children: [
                   Divider(color: Colors.grey.shade100, height: 1),
                   const SizedBox(height: 12),
-                  // Arabic
                   Text(
                     widget.item.arabic,
                     textAlign: TextAlign.right,
@@ -689,7 +671,6 @@ class _BacaanCardState extends State<_BacaanCard> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // Latin
                   Text(
                     widget.item.latin,
                     style: TextStyle(
@@ -700,7 +681,6 @@ class _BacaanCardState extends State<_BacaanCard> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // Translation
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -717,7 +697,6 @@ class _BacaanCardState extends State<_BacaanCard> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // Copy button
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton.icon(

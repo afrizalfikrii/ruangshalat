@@ -19,7 +19,7 @@ class MainBottomNavBar extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.mosque), label: 'Beranda'),
         BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Panduan'),
         BottomNavigationBarItem(icon: Icon(Icons.auto_stories), label: 'Al-Qur\'an'),
-        BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: 'Lainnya'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
       ],
       currentIndex: currentIndex,
       selectedItemColor: AppColors.emeraldGreen,
