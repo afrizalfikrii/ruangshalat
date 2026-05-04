@@ -141,12 +141,9 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
                 indicatorWeight: 3,
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.white60,
+                labelPadding: EdgeInsets.zero,
                 labelStyle: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600),
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                labelPadding:
-                    const EdgeInsets.symmetric(horizontal: 16),
+                    fontSize: 12, fontWeight: FontWeight.w600),
                 tabs: const [
                   Tab(text: 'Niat'),
                   Tab(text: 'Rakaat'),

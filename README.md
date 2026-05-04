@@ -11,8 +11,8 @@ Aplikasi mobile panduan ibadah shalat berbasis Flutter. Dibuat untuk Tugas Kelom
 | 🏠 **Beranda** | Jadwal shalat harian, countdown waktu shalat berikutnya | ✅ Selesai |
 | 📖 **Al-Qur'an** | Teks Arab, latin, terjemahan surah (berbasis API) | ✅ Selesai |
 | 📚 **Panduan** | Tata cara shalat wajib, wudhu, doa, dan dzikir (Offline) | ✅ Selesai |
-| 🧭 **Kiblat** | Kompas penunjuk arah kiblat | 🔄 Dalam Pengembangan |
-| ⚙️ **Lainnya** | Profil, tasbih digital, pengaturan | 🔄 Dalam Pengembangan |
+| 🧭 **Kiblat** | Kompas penunjuk arah kiblat dengan mode **Kamera AR** | ✅ Selesai |
+| ⚙️ **Lainnya** | Kalender Hijriah, Profil, Pengaturan | 🔄 Dalam Pengembangan |
 
 ---
 
@@ -26,6 +26,9 @@ Aplikasi ini menggunakan beberapa RESTful API eksternal pihak ketiga untuk menda
 2. **[EQuran.id API v2](https://equran.id/)**
    - Mendapatkan daftar kumpulan surah Al-Qur'an.
    - Mengambil detail ayat per ayat secara dinamis, mencakup teks Arab, transliterasi Latin, dan terjemahan bahasa Indonesia.
+3. **[Aladhan API](https://aladhan.com/prayer-times-api)**
+   - Mengambil titik kordinat sudut arah kiblat (Qibla Direction) secara akurat berdasarkan lokasi GPS pengguna.
+   - (Mendatang) Mengkonversi penanggalan Masehi ke Hijriah beserta jadwal hari besar Islam.
 
 *Catatan: Fitur Panduan Ibadah (Shalat, Wudhu, Doa) beroperasi sepenuhnya secara luring (offline) berkat integrasi data internal statis di dalam *source code*.*
 
@@ -46,8 +49,12 @@ lib/
 │   │   └── home_screen.dart      # Beranda: jadwal shalat & countdown
 │   ├── guide/
 │   │   └── guide_screen.dart     # Panduan: shalat, wudhu, doa
-│   ├── qibla/                    # (coming soon)
-│   └── settings/                 # (coming soon)
+│   ├── quran/
+│   │   ├── quran_screen.dart     # Daftar surah Al-Qur'an
+│   │   └── surah_detail_screen.dart # Detail ayat per ayat
+│   ├── qibla/
+│   │   └── qibla_ar_screen.dart  # Kompas kiblat dengan overlay Kamera AR
+│   └── calendar/                 # (coming soon) Kalender Hijriah
 │
 ├── shared/
 │   └── widgets/
@@ -107,6 +114,7 @@ lib/
 | Warna Utama | `#1E6351` (Emerald Green) |
 | Warna Aksen | `#D4AF37` (Gold) |
 | Background | `#F5F5F7` |
+| Font Utama | **Plus Jakarta Sans** (via `google_fonts`) |
 | Design System | Material 3 |
 
 ---
@@ -125,8 +133,9 @@ lib/
 
 | Nama | Role |
 |------|------|
-| Afrizal Fikri | Developer |
-| *(tambahkan anggota lain)* | *(role)* |
+| Afrizal Fikri | Project Leader & UI/UX Designer |
+| Aditya Ryan Affandi | Developer |
+| Muhammad Suhendra | Developer |
 
 ---
 

@@ -7,6 +7,7 @@ import 'package:ruang_shalat/core/constants/app_colors.dart';
 import 'package:ruang_shalat/models/prayer_schedule.dart';
 import 'package:ruang_shalat/services/myquran_service.dart';
 import 'package:ruang_shalat/services/notification_service.dart';
+import 'package:ruang_shalat/features/qibla/qibla_ar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -128,10 +129,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initLocationAndFetchSchedule() async {
     if (!mounted) return;
-    
-    // Jika sudah ada cache, langsung fetch jadwal saja
+
+    // Jika ada cache, tampilkan dulu (cepat), lalu update GPS di background
     if (_prefs?.getString('kotaId') != null) {
-      await _fetchSchedule();
+      await _fetchSchedule(); // render cepat dengan data cache
+      _forceUpdateLocation(); // update GPS di background tanpa await
       return;
     }
 
@@ -232,34 +234,15 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0.5,
-        titleSpacing: 12,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.emeraldGreen,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.home, color: Colors.white, size: 20),
-          ),
-        ),
         title: const Text(
-          'Ruang Shalat',
+          'ruangShalat',
           style: TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontSize: 20,
+            letterSpacing: -0.5,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_outlined,
-                color: Colors.black87, size: 26),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: RefreshIndicator(
         color: AppColors.emeraldGreen,
@@ -271,42 +254,96 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Location & Date ─────────────────────────────────────
-                GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Memperbarui lokasi GPS...')),
-                    );
-                    _forceUpdateLocation();
-                  },
-                  child: Row(
-                    children: [
-                      const Icon(Icons.location_on,
-                          color: AppColors.emeraldGreen, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        _currentKotaName,
-                        style: const TextStyle(
-                          color: Colors.black87,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                // ── Location, Date & Kiblat Button ──────────────────────
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Kolom kiri: lokasi + tanggal
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Memperbarui lokasi GPS...')),
+                              );
+                              _forceUpdateLocation();
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.location_on,
+                                    color: AppColors.emeraldGreen, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _currentKotaName,
+                                  style: const TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.refresh,
+                                    color: Colors.grey, size: 14),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_today_outlined,
+                                  color: Colors.grey, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                _schedule?.tanggal ?? _formatDateFallback(),
+                                style: TextStyle(
+                                    color: Colors.grey.shade600, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Tombol kapsul Kiblat
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const QiblaArScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                              color: AppColors.emeraldGreen, width: 1.5),
+                          borderRadius: BorderRadius.circular(20),
+                          color: AppColors.emeraldGreen.withValues(alpha: 0.06),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.explore,
+                                color: AppColors.emeraldGreen, size: 14),
+                            SizedBox(width: 5),
+                            Text(
+                              'Kiblat',
+                              style: TextStyle(
+                                color: AppColors.emeraldGreen,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.refresh, color: Colors.grey, size: 14),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        color: Colors.grey, size: 14),
-                    const SizedBox(width: 4),
-                    Text(
-                      _schedule?.tanggal ?? _formatDateFallback(),
-                      style: TextStyle(
-                          color: Colors.grey.shade600, fontSize: 12),
                     ),
                   ],
                 ),
@@ -454,7 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _separator(),
               _countdownBox(_twoDigits(s), 'DTK'),
               const SizedBox(width: 10),
-              const Text('Left',
+              const Text('Tersisa',
                   style:
                       TextStyle(color: Colors.white70, fontSize: 13)),
             ],
