@@ -14,8 +14,8 @@ class QiblaSheet extends StatefulWidget {
 
 class _QiblaSheetState extends State<QiblaSheet>
     with SingleTickerProviderStateMixin {
-  double? _qiblaDirection; // sudut kiblat dari Utara (derajat)
-  double _compassHeading = 0; // arah HP saat ini (derajat dari Utara)
+  double? _qiblaDirection;
+  double _compassHeading = 0;
   bool _loading = true;
   String? _error;
   bool _compassAvailable = true;
@@ -44,7 +44,6 @@ class _QiblaSheetState extends State<QiblaSheet>
   }
 
   Future<void> _initQibla() async {
-    // Cek ketersediaan sensor kompas
     final stream = FlutterCompass.events;
     if (stream == null) {
       setState(() {
@@ -55,7 +54,6 @@ class _QiblaSheetState extends State<QiblaSheet>
       return;
     }
 
-    // Ambil posisi GPS
     try {
       Position? position = await Geolocator.getLastKnownPosition();
       position ??= await Geolocator.getCurrentPosition(
@@ -84,7 +82,6 @@ class _QiblaSheetState extends State<QiblaSheet>
         _loading = false;
       });
 
-      // Subscribe ke stream kompas
       stream.listen((event) {
         if (mounted && event.heading != null) {
           setState(() {
@@ -101,13 +98,11 @@ class _QiblaSheetState extends State<QiblaSheet>
     }
   }
 
-  /// Menghitung sudut rotasi jarum kiblat relatif terhadap orientasi HP
   double get _qiblaRotation {
     if (_qiblaDirection == null) return 0;
     return (_qiblaDirection! - _compassHeading) * (math.pi / 180);
   }
 
-  /// Menghitung sudut rotasi kompas (utara selalu di atas saat jarum kiblat lurus)
   double get _compassRotation {
     return -_compassHeading * (math.pi / 180);
   }
@@ -123,7 +118,6 @@ class _QiblaSheetState extends State<QiblaSheet>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
           Container(
             width: 40,
             height: 4,
@@ -134,7 +128,6 @@ class _QiblaSheetState extends State<QiblaSheet>
           ),
           const SizedBox(height: 20),
 
-          // Header
           Row(
             children: [
               Container(
@@ -173,7 +166,6 @@ class _QiblaSheetState extends State<QiblaSheet>
 
           const SizedBox(height: 28),
 
-          // Body
           if (_loading)
             _buildLoading()
           else if (_error != null)
@@ -255,14 +247,12 @@ class _QiblaSheetState extends State<QiblaSheet>
 
     return Column(
       children: [
-        // Kompas
         SizedBox(
           width: 240,
           height: 240,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Lingkaran luar dengan rotasi kompas
               AnimatedRotation(
                 turns: _compassRotation / (2 * math.pi),
                 duration: const Duration(milliseconds: 100),
@@ -272,7 +262,6 @@ class _QiblaSheetState extends State<QiblaSheet>
                 ),
               ),
 
-              // Jarum kiblat (rotasi relatif terhadap kompas + orientasi HP)
               AnimatedRotation(
                 turns: _qiblaRotation / (2 * math.pi),
                 duration: const Duration(milliseconds: 100),
@@ -285,7 +274,6 @@ class _QiblaSheetState extends State<QiblaSheet>
                 ),
               ),
 
-              // Titik tengah + Icon Ka'bah
               Container(
                 width: 48,
                 height: 48,
@@ -311,7 +299,6 @@ class _QiblaSheetState extends State<QiblaSheet>
 
         const SizedBox(height: 20),
 
-        // Info derajat
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
@@ -347,29 +334,23 @@ class _QiblaSheetState extends State<QiblaSheet>
   }
 }
 
-// ── Custom Painters ────────────────────────────────────────────────────────────
-
-/// Menggambar lingkaran kompas dengan mata angin
 class _CompassRingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
 
-    // Lingkaran luar
     final ringPaint = Paint()
       ..color = Colors.grey.shade200
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawCircle(center, radius - 4, ringPaint);
 
-    // Inner circle
     final innerPaint = Paint()
       ..color = Colors.grey.shade100
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius - 10, innerPaint);
 
-    // Garis derajat kecil (setiap 10°)
     final tickPaint = Paint()
       ..color = Colors.grey.shade400
       ..strokeWidth = 1;
@@ -386,7 +367,6 @@ class _CompassRingPainter extends CustomPainter {
       );
     }
 
-    // Mata angin: N, S, E, W
     final directions = {'N': 0.0, 'E': 90.0, 'S': 180.0, 'W': 270.0};
     for (final entry in directions.entries) {
       final angle = entry.value * math.pi / 180;
@@ -413,7 +393,6 @@ class _CompassRingPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Menggambar jarum penunjuk kiblat (berwarna hijau)
 class _QiblaArrowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -421,20 +400,17 @@ class _QiblaArrowPainter extends CustomPainter {
     final radius = size.width / 2;
     final arrowLength = radius - 50;
 
-    // Jarum atas (menunjuk kiblat) — hijau
     final arrowPaint = Paint()
       ..color = AppColors.emeraldGreen
       ..strokeWidth = 3.5
       ..strokeCap = StrokeCap.round;
 
-    // Batang jarum
     canvas.drawLine(
       Offset(center.dx, center.dy + arrowLength * 0.4),
       Offset(center.dx, center.dy - arrowLength),
       arrowPaint,
     );
 
-    // Kepala panah (segitiga)
     final arrowHead = Path()
       ..moveTo(center.dx, center.dy - arrowLength)
       ..lineTo(center.dx - 8, center.dy - arrowLength + 18)
@@ -442,7 +418,6 @@ class _QiblaArrowPainter extends CustomPainter {
       ..close();
     canvas.drawPath(arrowHead, Paint()..color = AppColors.emeraldGreen);
 
-    // Ekor jarum — abu-abu
     final tailPaint = Paint()
       ..color = Colors.grey.shade400
       ..strokeWidth = 3.5

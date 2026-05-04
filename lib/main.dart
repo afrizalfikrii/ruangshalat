@@ -73,7 +73,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-/// Placeholder untuk tab Lainnya — akan diganti dengan halaman Profil
 class _ComingSoonScreen extends StatelessWidget {
   const _ComingSoonScreen();
 

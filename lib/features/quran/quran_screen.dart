@@ -82,7 +82,6 @@ class _QuranScreenState extends State<QuranScreen> {
       ),
       body: Column(
         children: [
-          // ── Search bar ────────────────────────────────────────────────
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
@@ -113,7 +112,6 @@ class _QuranScreenState extends State<QuranScreen> {
             ),
           ),
 
-          // ── List surah ────────────────────────────────────────────────
           if (list.isEmpty)
             Expanded(
               child: Center(
@@ -174,7 +172,6 @@ class _QuranScreenState extends State<QuranScreen> {
         ),
         child: Row(
           children: [
-            // Nomor surah
             Container(
               width: 42,
               height: 42,
@@ -195,7 +192,6 @@ class _QuranScreenState extends State<QuranScreen> {
             ),
             const SizedBox(width: 14),
 
-            // Nama + info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,7 +234,6 @@ class _QuranScreenState extends State<QuranScreen> {
               ),
             ),
 
-            // Nama Arab
             Text(
               s.nameAr,
               style: TextStyle(
