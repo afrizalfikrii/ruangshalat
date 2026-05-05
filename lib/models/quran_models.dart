@@ -1,5 +1,3 @@
-/// Models for myquran.com Al-Quran API
-
 class Surah {
   final int number;
   final String nameAr;
@@ -83,20 +81,19 @@ class Ayat {
       latin: json['teksLatin'] ?? '',
       terjemahan: json['teksIndonesia'] ?? '',
       audioUrl: parsedAudio,
-      juz: 0, // Equran doesn't return juz or page at verse level
+      juz: 0,
       page: 0,
     );
   }
 }
 
-/// Static metadata for 114 surahs (to avoid 114 API calls for list screen)
 class SurahMeta {
   final int number;
   final String nameAr;
   final String nameId;
   final String nameEn;
   final int ayatCount;
-  final String revelasi; // Makkiyyah / Madaniyyah
+  final String revelasi;
 
   const SurahMeta({
     required this.number,
@@ -108,7 +105,6 @@ class SurahMeta {
   });
 }
 
-/// Hardcoded metadata list for all 114 surahs
 const List<SurahMeta> surahList = [
   SurahMeta(number: 1, nameAr: 'الفاتحة', nameId: 'Al-Fatihah', nameEn: 'The Opening', ayatCount: 7, revelasi: 'Makkiyyah'),
   SurahMeta(number: 2, nameAr: 'البقرة', nameId: 'Al-Baqarah', nameEn: 'The Cow', ayatCount: 286, revelasi: 'Madaniyyah'),

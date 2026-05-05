@@ -52,7 +52,7 @@ class _MainScreenState extends State<MainScreen> {
     HomeScreen(),
     GuideScreen(),
     QuranScreen(),
-    Center(child: Text('Kiblat (Segera Hadir)', style: TextStyle(fontSize: 18))),
+    _ComingSoonScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -68,6 +68,58 @@ class _MainScreenState extends State<MainScreen> {
       bottomNavigationBar: MainBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+      ),
+    );
+  }
+}
+
+class _ComingSoonScreen extends StatelessWidget {
+  const _ComingSoonScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B5E20).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_outline_rounded,
+                  size: 44,
+                  color: Color(0xFF1B5E20),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Profil',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Fitur profil & streak ibadah\nakan segera hadir.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade500,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

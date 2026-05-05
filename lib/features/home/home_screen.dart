@@ -7,6 +7,9 @@ import 'package:ruang_shalat/core/constants/app_colors.dart';
 import 'package:ruang_shalat/models/prayer_schedule.dart';
 import 'package:ruang_shalat/services/myquran_service.dart';
 import 'package:ruang_shalat/services/notification_service.dart';
+import 'package:ruang_shalat/services/hijri_service.dart';
+import 'package:ruang_shalat/features/qibla/qibla_ar_screen.dart';
+import 'package:ruang_shalat/features/calendar/hijri_calendar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,29 +19,37 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // ── State ──────────────────────────────────────────────────────────────────
   PrayerSchedule? _schedule;
   bool _loading = true;
   String? _error;
   Duration _remaining = Duration.zero;
   late Timer _timer;
-  
+
   SharedPreferences? _prefs;
   final Map<String, bool> _activeNotifications = {};
 
-  String _currentKotaId = '1411'; 
+  String _currentKotaId = '1411';
   String _currentKotaName = 'Mencari lokasi...';
+  String _todayHijri = '';
 
   @override
   void initState() {
     super.initState();
     _initPrefs();
     _initLocationAndFetchSchedule();
+    _fetchTodayHijri();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_schedule != null && mounted) {
         setState(() => _remaining = _schedule!.durationUntilNext());
       }
     });
+  }
+
+  Future<void> _fetchTodayHijri() async {
+    final info = await HijriService.getTodayHijri();
+    if (info != null && mounted) {
+      setState(() => _todayHijri = info.hijriFullDate);
+    }
   }
 
   @override
@@ -56,7 +67,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _activeNotifications['Maghrib'] = _prefs?.getBool('notif_Maghrib') ?? false;
       _activeNotifications['Isya'] = _prefs?.getBool('notif_Isya') ?? false;
 
-      // Load cached location if exists
       final savedKotaId = _prefs?.getString('kotaId');
       final savedKotaName = _prefs?.getString('kotaName');
       if (savedKotaId != null && savedKotaName != null) {
@@ -91,14 +101,14 @@ class _HomeScreenState extends State<HomeScreen> {
           int.parse(parts[0]),
           int.parse(parts[1]),
         );
-        
+
         await NotificationService().schedulePrayerNotification(
           id: id,
           title: 'Waktunya Shalat $prayerName',
           body: 'Telah masuk waktu shalat $prayerName wilayah $_currentKotaName.',
           scheduledTime: scheduledTime,
         );
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Notifikasi shalat $prayerName diaktifkan')),
@@ -128,10 +138,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initLocationAndFetchSchedule() async {
     if (!mounted) return;
-    
-    // Jika sudah ada cache, langsung fetch jadwal saja
+
     if (_prefs?.getString('kotaId') != null) {
       await _fetchSchedule();
+      _forceUpdateLocation();
       return;
     }
 
@@ -162,7 +172,6 @@ class _HomeScreenState extends State<HomeScreen> {
         throw Exception('Izin lokasi ditolak permanen.');
       }
 
-      // Gunakan posisi terakhir yang diketahui agar lebih cepat, jika null baru cari baru
       Position? position = await Geolocator.getLastKnownPosition();
       position ??= await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
@@ -188,8 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (searchResults.isNotEmpty) {
           _currentKotaId = searchResults.first.id;
           _currentKotaName = searchResults.first.lokasi;
-          
-          // Simpan ke cache
+
           await _prefs?.setString('kotaId', _currentKotaId);
           await _prefs?.setString('kotaName', _currentKotaName);
         } else {
@@ -232,34 +240,15 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0.5,
-        titleSpacing: 12,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.emeraldGreen,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.home, color: Colors.white, size: 20),
-          ),
-        ),
         title: const Text(
-          'Ruang Shalat',
+          'ruangShalat',
           style: TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontSize: 20,
+            letterSpacing: -0.5,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_outlined,
-                color: Colors.black87, size: 26),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: RefreshIndicator(
         color: AppColors.emeraldGreen,
@@ -271,48 +260,125 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Location & Date ─────────────────────────────────────
-                GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Memperbarui lokasi GPS...')),
-                    );
-                    _forceUpdateLocation();
-                  },
-                  child: Row(
-                    children: [
-                      const Icon(Icons.location_on,
-                          color: AppColors.emeraldGreen, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        _currentKotaName,
-                        style: const TextStyle(
-                          color: Colors.black87,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Memperbarui lokasi GPS...')),
+                              );
+                              _forceUpdateLocation();
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.location_on,
+                                    color: AppColors.emeraldGreen, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _currentKotaName,
+                                  style: const TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.refresh,
+                                    color: Colors.grey, size: 14),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const HijriCalendarScreen()),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_today_outlined,
+                                    color: AppColors.emeraldGreen, size: 14),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _schedule?.tanggal ?? _formatDateFallback(),
+                                  style: TextStyle(
+                                      color: Colors.grey.shade700,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                if (_todayHijri.isNotEmpty) ...
+                                  [
+                                    Text(
+                                      ' / ',
+                                      style: TextStyle(
+                                          color: Colors.grey.shade400,
+                                          fontSize: 12),
+                                    ),
+                                    Text(
+                                      _todayHijri,
+                                      style: const TextStyle(
+                                        color: AppColors.emeraldGreen,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const QiblaArScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                              color: AppColors.emeraldGreen, width: 1.5),
+                          borderRadius: BorderRadius.circular(20),
+                          color: AppColors.emeraldGreen.withValues(alpha: 0.06),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.explore,
+                                color: AppColors.emeraldGreen, size: 14),
+                            SizedBox(width: 5),
+                            Text(
+                              'Kiblat',
+                              style: TextStyle(
+                                color: AppColors.emeraldGreen,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.refresh, color: Colors.grey, size: 14),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        color: Colors.grey, size: 14),
-                    const SizedBox(width: 4),
-                    Text(
-                      _schedule?.tanggal ?? _formatDateFallback(),
-                      style: TextStyle(
-                          color: Colors.grey.shade600, fontSize: 12),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
 
-                // ── Next Prayer Card ─────────────────────────────────────
                 _loading
                     ? _buildLoadingCard()
                     : _error != null
@@ -320,7 +386,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         : _buildNextPrayerCard(),
                 const SizedBox(height: 20),
 
-                // ── Prayer Schedule Header ───────────────────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -341,7 +406,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                // ── Prayer List ──────────────────────────────────────────
                 _loading
                     ? _buildListSkeleton()
                     : _error != null
@@ -350,7 +414,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 14),
 
-                // ── Footer ───────────────────────────────────────────────
                 Center(
                   child: Text(
                     'Berdasarkan data Kemenag RI · $_currentKotaName',
@@ -369,7 +432,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Next Prayer Card ───────────────────────────────────────────────────────
   Widget _buildNextPrayerCard() {
     final next = _schedule!.nextPrayer()!;
     final h = _remaining.inHours;
@@ -454,7 +516,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _separator(),
               _countdownBox(_twoDigits(s), 'DTK'),
               const SizedBox(width: 10),
-              const Text('Left',
+              const Text('Tersisa',
                   style:
                       TextStyle(color: Colors.white70, fontSize: 13)),
             ],
@@ -464,7 +526,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Prayer List ──────────────────────────────────────────────────────────
   Widget _buildPrayerList() {
     final s = _schedule!;
     final now = DateTime.now();
@@ -497,7 +558,6 @@ class _HomeScreenState extends State<HomeScreen> {
           final p = entry.value;
           final isNext = p.name == nextName;
 
-          // Determine if prayer has passed
           final parts = p.time.split(':');
           bool hasPassed = false;
           if (parts.length == 2) {
@@ -635,7 +695,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Loading & Error Widgets ────────────────────────────────────────────────
   Widget _buildLoadingCard() {
     return Container(
       width: double.infinity,
@@ -751,7 +810,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Countdown helpers ──────────────────────────────────────────────────────
   Widget _countdownBox(String value, String label) {
     return Column(
       children: [
@@ -788,7 +846,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── Date helpers ───────────────────────────────────────────────────────────
   String _formatDateFallback() {
     final now = DateTime.now();
     const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
