@@ -206,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       _currentKotaId = '1411';
-      _currentKotaName = 'Karanganyar (Default)';
+      _currentKotaName = 'Karanganyar';
     }
 
     await _fetchSchedule();
@@ -281,12 +281,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Icon(Icons.location_on,
                                     color: AppColors.emeraldGreen, size: 16),
                                 const SizedBox(width: 4),
-                                Text(
-                                  _currentKotaName,
-                                  style: const TextStyle(
-                                    color: Colors.black87,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
+                                Flexible(
+                                  child: Text(
+                                    _currentKotaName,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
@@ -304,34 +307,39 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const HijriCalendarScreen()),
                             ),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.calendar_today_outlined,
-                                    color: AppColors.emeraldGreen, size: 14),
-                                const SizedBox(width: 4),
-                                Text(
-                                  _schedule?.tanggal ?? _formatDateFallback(),
-                                  style: TextStyle(
-                                      color: Colors.grey.shade700,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500),
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 2),
+                                  child: Icon(Icons.calendar_today_outlined,
+                                      color: AppColors.emeraldGreen, size: 14),
                                 ),
-                                if (_todayHijri.isNotEmpty) ...
-                                  [
-                                    Text(
-                                      ' / ',
-                                      style: TextStyle(
-                                          color: Colors.grey.shade400,
-                                          fontSize: 12),
-                                    ),
-                                    Text(
-                                      _todayHijri,
-                                      style: const TextStyle(
-                                        color: AppColors.emeraldGreen,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _schedule?.tanggal ?? _formatDateFallback(),
+                                        style: TextStyle(
+                                            color: Colors.grey.shade700,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500),
                                       ),
-                                    ),
-                                  ],
+                                      if (_todayHijri.isNotEmpty) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _todayHijri,
+                                          style: const TextStyle(
+                                            color: AppColors.emeraldGreen,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ),
