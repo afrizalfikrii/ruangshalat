@@ -42,8 +42,7 @@ class NotificationService {
 
     await _notificationsPlugin.initialize(
       settings: initializationSettings,
-      onDidReceiveNotificationResponse: (details) {
-      },
+      onDidReceiveNotificationResponse: (details) {},
     );
 
     if (Platform.isAndroid) {
@@ -63,6 +62,8 @@ class NotificationService {
     required String title,
     required String body,
     required DateTime scheduledTime,
+    required String prayerName, // Parameter Baru: Untuk mengecek apakah ini Subuh
+    required String status,     // Parameter Baru: 'audio' atau 'silent'
   }) async {
     if (!_initialized) await init();
 
@@ -72,24 +73,58 @@ class NotificationService {
 
     final scheduledDate = tz.TZDateTime.from(scheduledTime, tz.local);
 
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    // LOGIKA PENENTUAN SALURAN (CHANNEL) & SUARA
+    String channelId;
+    String channelName;
+    String channelDesc;
+    bool playSound = status == 'audio';
+    AndroidNotificationSound? sound;
+
+    if (status == 'audio') {
+      if (prayerName == 'Subuh') {
+        channelId = 'adzan_subuh_channel';
+        channelName = 'Adzan Subuh';
+        channelDesc = 'Notifikasi dengan lafaz adzan Subuh';
+        sound = const RawResourceAndroidNotificationSound('adzan_subuh');
+      } else {
+        channelId = 'adzan_standard_channel';
+        channelName = 'Adzan Standar';
+        channelDesc = 'Notifikasi dengan lafaz adzan standar';
+        sound = const RawResourceAndroidNotificationSound('adzan');
+      }
+    } else {
+      channelId = 'silent_channel';
+      channelName = 'Notifikasi Senyap';
+      channelDesc = 'Notifikasi getar tanpa suara';
+      sound = null;
+    }
+
+    final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'prayer_time_channel',
-      'Waktu Shalat',
-      channelDescription: 'Notifikasi saat waktu shalat tiba',
+      channelId,
+      channelName,
+      channelDescription: channelDesc,
       importance: Importance.max,
       priority: Priority.high,
-      playSound: true,
+      playSound: playSound,
+      sound: sound,
       enableVibration: true,
     );
 
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+    // Untuk iOS (Opsional, jika Anda mengembangkan ke iPhone nantinya)
+    final DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: playSound,
+      sound: playSound 
+          ? (prayerName == 'Subuh' ? 'adzan_subuh.aiff' : 'adzan.aiff') 
+          : null,
+    );
+
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
-      iOS: DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      ),
+      iOS: iOSPlatformChannelSpecifics,
     );
 
     await _notificationsPlugin.zonedSchedule(

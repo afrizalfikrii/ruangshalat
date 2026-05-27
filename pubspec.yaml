@@ -43,6 +43,11 @@ dependencies:
   google_fonts: ^6.1.0
   table_calendar: ^3.1.2
   intl: ^0.19.0
+  supabase_flutter: ^2.12.4
+  google_sign_in: ^7.2.0
+  image_picker: ^1.2.2
+  image_cropper: ^12.2.1
+  confetti: ^0.8.0
 
 dev_dependencies:
   flutter_test:
@@ -65,11 +70,12 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/images/badge_1.png
+    - assets/images/badge_2.png
+    - assets/images/badge_3.png
+    - assets/images/badge_4.png
+    - assets/images/google_logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

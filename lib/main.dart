@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:ruang_shalat/features/profile/profile_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:ruang_shalat/core/constants/supabase_constants.dart';
 import 'package:ruang_shalat/core/theme/app_theme.dart';
 import 'package:ruang_shalat/features/guide/guide_screen.dart';
 import 'package:ruang_shalat/features/home/home_screen.dart';
@@ -9,7 +12,16 @@ import 'package:ruang_shalat/shared/widgets/main_bottom_nav_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inisialisasi notifikasi (tetap dipertahankan)
   await NotificationService().init();
+  
+  // Menambahkan inisialisasi Supabase
+  await Supabase.initialize(
+    url: SupabaseConstants.supabaseUrl,
+    anonKey: SupabaseConstants.supabaseAnonKey,
+  );
+
   runApp(const RuangShalatApp());
 }
 
@@ -52,7 +64,7 @@ class _MainScreenState extends State<MainScreen> {
     HomeScreen(),
     GuideScreen(),
     QuranScreen(),
-    _ComingSoonScreen(),
+    ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:ruang_shalat/core/constants/app_colors.dart';
 import 'package:ruang_shalat/models/prayer_schedule.dart';
 import 'package:ruang_shalat/services/myquran_service.dart';
@@ -26,7 +28,23 @@ class _HomeScreenState extends State<HomeScreen> {
   late Timer _timer;
 
   SharedPreferences? _prefs;
-  final Map<String, bool> _activeNotifications = {};
+  
+  // Status notifikasi diubah menjadi String: 'audio', 'silent', 'off'
+  final Map<String, String> _notificationSettings = {
+    'Subuh': 'off',
+    'Dzuhur': 'off',
+    'Ashar': 'off',
+    'Maghrib': 'off',
+    'Isya': 'off',
+  };
+
+  final Map<String, String?> _prayerLogs = {
+    'Subuh': null,
+    'Dzuhur': null,
+    'Ashar': null,
+    'Maghrib': null,
+    'Isya': null,
+  };
 
   String _currentKotaId = '1411';
   String _currentKotaName = 'Mencari lokasi...';
@@ -38,11 +56,270 @@ class _HomeScreenState extends State<HomeScreen> {
     _initPrefs();
     _initLocationAndFetchSchedule();
     _fetchTodayHijri();
+    _fetchDailyLog();
+
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_schedule != null && mounted) {
         setState(() => _remaining = _schedule!.durationUntilNext());
       }
     });
+  }
+
+  Future<void> _fetchDailyLog() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    try {
+      final data = await Supabase.instance.client
+          .from('daily_logs')
+          .select()
+          .eq('user_id', user.id)
+          .eq('log_date', today)
+          .maybeSingle();
+
+      if (data != null && mounted) {
+        setState(() {
+          _prayerLogs['Subuh'] = data['subuh'];
+          _prayerLogs['Dzuhur'] = data['dzuhur'];
+          _prayerLogs['Ashar'] = data['asar'];
+          _prayerLogs['Maghrib'] = data['maghrib'];
+          _prayerLogs['Isya'] = data['isya'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error memuat log ibadah: $e');
+    }
+  }
+
+  Future<void> _togglePrayerLog(String name, String timeString) async {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Masuk melalui menu Profil untuk mulai mencatat progres ibadah Anda.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final currentStatus = _prayerLogs[name];
+
+    if (currentStatus != null) {
+      _saveLogToSupabase(name, null);
+      return;
+    }
+
+    final now = DateTime.now();
+    final parts = timeString.split(':');
+    DateTime? prayerTime;
+    
+    if (parts.length == 2) {
+      prayerTime = DateTime(now.year, now.month, now.day, int.parse(parts[0]), int.parse(parts[1]));
+    }
+
+    if (prayerTime != null && now.isBefore(prayerTime)) {
+      if (name == 'Subuh' || name == 'Dzuhur' || name == 'Maghrib') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Waktu $name belum masuk. Shalat ini tidak bisa di-Jamak Taqdim.'),
+            backgroundColor: Colors.red.shade800,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      String jamakWith = name == 'Ashar' ? 'Dzuhur' : 'Maghrib';
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.info_outline, color: AppColors.gold),
+              SizedBox(width: 8),
+              Text('Waktu Belum Masuk', style: TextStyle(fontSize: 18)),
+            ],
+          ),
+          content: Text('Waktu shalat $name belum tiba. Apakah Anda mencatat ini untuk Jamak Taqdim dengan $jamakWith?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.emeraldGreen,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Ya, Jamak'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true) {
+        _saveLogToSupabase(name, 'JAMAK');
+      }
+      return;
+    }
+
+    final selectedStatus = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Catat Shalat $name',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.check_circle, color: AppColors.emeraldGreen),
+                  title: const Text('Tepat Waktu'),
+                  subtitle: const Text('Shalat pada waktunya'),
+                  onTap: () => Navigator.pop(context, 'TEPAT_WAKTU'),
+                ),
+                
+                if (name != 'Subuh')
+                  ListTile(
+                    leading: const Icon(Icons.sync_alt, color: Colors.blue),
+                    title: const Text('Jamak'),
+                    subtitle: Text(name == 'Dzuhur' || name == 'Ashar' 
+                        ? 'Digabung Dzuhur & Ashar' 
+                        : 'Digabung Maghrib & Isya'),
+                    onTap: () => Navigator.pop(context, 'JAMAK'),
+                  ),
+                  
+                ListTile(
+                  leading: const Icon(Icons.history, color: AppColors.gold),
+                  title: const Text('Qadha'),
+                  subtitle: const Text('Mengganti shalat yang terlewat'),
+                  onTap: () => Navigator.pop(context, 'QADHA'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selectedStatus != null) {
+      _saveLogToSupabase(name, selectedStatus);
+    }
+  }
+
+  // ==============================================================================
+  // --- FUNGSI UPDATE: MENYIMPAN LOG DAN MENGHITUNG STREAK/POIN SECARA OTOMATIS --
+  // ==============================================================================
+  Future<void> _saveLogToSupabase(String name, String? status) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final previousStatus = _prayerLogs[name];
+
+    // Update UI Lokal
+    setState(() {
+      _prayerLogs[name] = status;
+    });
+
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().split('T')[0];
+    final yesterdayStr = today.subtract(const Duration(days: 1)).toIso8601String().split('T')[0];
+
+    try {
+      // 1. Simpan Log Shalat Harian
+      await Supabase.instance.client.from('daily_logs').upsert({
+        'user_id': user.id,
+        'log_date': todayStr,
+        'subuh': _prayerLogs['Subuh'],
+        'dzuhur': _prayerLogs['Dzuhur'],
+        'asar': _prayerLogs['Ashar'],
+        'maghrib': _prayerLogs['Maghrib'],
+        'isya': _prayerLogs['Isya'],
+      }, onConflict: 'user_id, log_date');
+
+      // 2. Ambil Profil Saat Ini untuk kalkulasi Poin dan Streak
+      final profile = await Supabase.instance.client.from('profiles').select().eq('id', user.id).single();
+      
+      int currentStreak = profile['current_streak'] ?? 0;
+      int longestStreak = profile['longest_streak'] ?? 0;
+      int totalPoints = profile['total_points'] ?? 0;
+
+      // Cek kelengkapan hari kemarin
+      final yesterdayLog = await Supabase.instance.client
+          .from('daily_logs')
+          .select()
+          .eq('user_id', user.id)
+          .eq('log_date', yesterdayStr)
+          .maybeSingle();
+
+      bool wasYesterdayComplete = false;
+      if (yesterdayLog != null) {
+        if (yesterdayLog['subuh'] != null && yesterdayLog['dzuhur'] != null &&
+            yesterdayLog['asar'] != null && yesterdayLog['maghrib'] != null &&
+            yesterdayLog['isya'] != null) {
+          wasYesterdayComplete = true;
+        }
+      }
+
+      // HUKUMAN: Reset Streak jika kemarin bolong (dan bukan streak awal/0)
+      if (!wasYesterdayComplete && currentStreak > 0) {
+        currentStreak = 0; 
+      }
+
+      // Cek kelengkapan hari ini
+      bool isTodayComplete = _prayerLogs['Subuh'] != null && _prayerLogs['Dzuhur'] != null && 
+                             _prayerLogs['Ashar'] != null && _prayerLogs['Maghrib'] != null && 
+                             _prayerLogs['Isya'] != null;
+
+      // REWARD: Jika hari ini komplit DAN sebelumnya statusnya null (baru ditambahkan, bukan mengedit)
+      // Ini mencegah eksploitasi di mana user terus mengubah status shalat yang sama untuk menaikkan poin/streak.
+      if (isTodayComplete && status != null && previousStatus == null) {
+        currentStreak += 1;
+        totalPoints += 50; 
+
+        if (currentStreak > longestStreak) {
+          longestStreak = currentStreak; 
+        }
+      } 
+      // Jika pengguna membatalkan shalat terakhir (menjadi tidak lengkap), kurangi streak agar adil.
+      else if (!isTodayComplete && status == null && currentStreak > 0) {
+        // Asumsi: jika sebelumnya dia mencabut komplitnya, maka kita kurangi 1.
+        // Poin bisa tetap, atau Anda bisa mengatur logika pengurangan poin. Untuk saat ini kita kurangi streak.
+        currentStreak -= 1;
+      }
+
+      // 3. Simpan Kalkulasi Gamifikasi ke Tabel Profil
+      await Supabase.instance.client.from('profiles').update({
+        'current_streak': currentStreak,
+        'longest_streak': longestStreak,
+        'total_points': totalPoints,
+      }).eq('id', user.id);
+
+    } catch (e) {
+      // Revert UI jika gagal
+      setState(() {
+        _prayerLogs[name] = previousStatus;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menyimpan catatan: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _fetchTodayHijri() async {
@@ -58,14 +335,15 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  // --- MIGRASI & BACA PENGATURAN NOTIFIKASI ---
   Future<void> _initPrefs() async {
     _prefs = await SharedPreferences.getInstance();
     setState(() {
-      _activeNotifications['Subuh'] = _prefs?.getBool('notif_Subuh') ?? false;
-      _activeNotifications['Dzuhur'] = _prefs?.getBool('notif_Dzuhur') ?? false;
-      _activeNotifications['Ashar'] = _prefs?.getBool('notif_Ashar') ?? false;
-      _activeNotifications['Maghrib'] = _prefs?.getBool('notif_Maghrib') ?? false;
-      _activeNotifications['Isya'] = _prefs?.getBool('notif_Isya') ?? false;
+      _notificationSettings['Subuh'] = _getPrefString('Subuh');
+      _notificationSettings['Dzuhur'] = _getPrefString('Dzuhur');
+      _notificationSettings['Ashar'] = _getPrefString('Ashar');
+      _notificationSettings['Maghrib'] = _getPrefString('Maghrib');
+      _notificationSettings['Isya'] = _getPrefString('Isya');
 
       final savedKotaId = _prefs?.getString('kotaId');
       final savedKotaName = _prefs?.getString('kotaName');
@@ -76,21 +354,98 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _toggleNotification(String prayerName, String time) async {
-    final bool isCurrentlyActive = _activeNotifications[prayerName] ?? false;
-    final bool willBeActive = !isCurrentlyActive;
+  String _getPrefString(String prayerName) {
+    final newKey = 'notif_status_$prayerName';
+    final oldKey = 'notif_$prayerName';
+    
+    final newStatus = _prefs?.getString(newKey);
+    if (newStatus != null) return newStatus;
+    
+    // Migrasi data lama dari boolean ke string (default: silent jika dulu aktif)
+    try {
+      final oldStatus = _prefs?.getBool(oldKey);
+      if (oldStatus == true) return 'silent'; 
+    } catch (e) {
+      // Abaikan jika error
+    }
+    return 'off';
+  }
 
+  // --- MENU PILIHAN STATUS NOTIFIKASI (BOTTOM SHEET) ---
+  Future<void> _showNotificationOptions(String prayerName, String time) async {
+    final currentStatus = _notificationSettings[prayerName] ?? 'off';
+    final isSubuh = prayerName == 'Subuh';
+
+    final selectedOption = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Notifikasi $prayerName',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.notifications_active, color: AppColors.emeraldGreen),
+                  title: const Text('Suara Adzan', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(isSubuh ? 'Lantunan adzan khusus Subuh' : 'Lantunan adzan standar'),
+                  trailing: currentStatus == 'audio' ? const Icon(Icons.check_circle, color: AppColors.emeraldGreen) : null,
+                  onTap: () => Navigator.pop(context, 'audio'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.notifications, color: Colors.blue),
+                  title: const Text('Notifikasi Saja', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Hanya pesan teks dan getar'),
+                  trailing: currentStatus == 'silent' ? const Icon(Icons.check_circle, color: Colors.blue) : null,
+                  onTap: () => Navigator.pop(context, 'silent'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.notifications_off_outlined, color: Colors.grey),
+                  title: const Text('Nonaktif', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Matikan pengingat shalat ini'),
+                  trailing: currentStatus == 'off' ? const Icon(Icons.check_circle, color: Colors.grey) : null,
+                  onTap: () => Navigator.pop(context, 'off'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selectedOption != null && selectedOption != currentStatus) {
+      await _applyNotificationSetting(prayerName, time, selectedOption);
+    }
+  }
+
+  Future<void> _applyNotificationSetting(String prayerName, String time, String status) async {
     setState(() {
-      _activeNotifications[prayerName] = willBeActive;
+      _notificationSettings[prayerName] = status;
     });
 
     if (_prefs != null) {
-      await _prefs!.setBool('notif_$prayerName', willBeActive);
+      await _prefs!.setString('notif_status_$prayerName', status);
     }
 
     final id = _getPrayerId(prayerName);
 
-    if (willBeActive) {
+    if (status == 'off') {
+      await NotificationService().cancelNotification(id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Pengingat $prayerName dinonaktifkan')),
+        );
+      }
+    } else {
       final now = DateTime.now();
       final parts = time.split(':');
       if (parts.length == 2) {
@@ -107,20 +462,16 @@ class _HomeScreenState extends State<HomeScreen> {
           title: 'Waktunya Shalat $prayerName',
           body: 'Telah masuk waktu shalat $prayerName wilayah $_currentKotaName.',
           scheduledTime: scheduledTime,
+          prayerName: prayerName, 
+          status: status,         
         );
 
         if (mounted) {
+          String msg = status == 'audio' ? 'Suara Adzan' : 'Notifikasi teks';
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Notifikasi shalat $prayerName diaktifkan')),
+            SnackBar(content: Text('$msg diaktifkan untuk $prayerName')),
           );
         }
-      }
-    } else {
-      await NotificationService().cancelNotification(id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Notifikasi shalat $prayerName dimatikan')),
-        );
       }
     }
   }
@@ -229,6 +580,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _error = schedule == null ? 'Gagal memuat jadwal.' : null;
       if (schedule != null) _remaining = schedule.durationUntilNext();
     });
+    
+    _fetchDailyLog(); // Reload status tiap update lokasi
   }
 
   String _twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -583,7 +936,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 isNext: isNext,
                 hasPassed: hasPassed,
                 isLast: i == prayers.length - 1,
-                isNotifActive: _activeNotifications[p.name] ?? false,
               ),
               if (i < prayers.length - 1)
                 Divider(
@@ -606,13 +958,29 @@ class _HomeScreenState extends State<HomeScreen> {
     required bool isNext,
     required bool hasPassed,
     bool isLast = false,
-    required bool isNotifActive,
   }) {
+    final logStatus = _prayerLogs[name];
+    final isChecked = logStatus != null; 
+    
+    // Mengambil status notifikasi
+    final notifStatus = _notificationSettings[name] ?? 'off';
+
     final dotColor = isNext
         ? AppColors.emeraldGreen
         : hasPassed
             ? Colors.grey.shade300
             : AppColors.gold;
+
+    Color checkboxColor = Colors.transparent;
+    if (isChecked) {
+      if (logStatus == 'TEPAT_WAKTU') {
+        checkboxColor = AppColors.emeraldGreen;
+      } else if (logStatus == 'JAMAK') {
+        checkboxColor = Colors.blue; 
+      } else if (logStatus == 'QADHA') {
+        checkboxColor = AppColors.gold; 
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -621,10 +989,10 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             width: 10,
             height: 10,
-            decoration:
-                BoxDecoration(color: dotColor, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
           ),
           const SizedBox(width: 12),
+          
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -662,11 +1030,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ],
-                    if (hasPassed && !isNext) ...[
-                      const SizedBox(width: 6),
-                      Icon(Icons.check_circle,
-                          size: 13, color: Colors.grey.shade400),
-                    ],
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -678,6 +1041,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+          
           Text(
             time,
             style: TextStyle(
@@ -688,15 +1052,47 @@ class _HomeScreenState extends State<HomeScreen> {
                   : Colors.black87,
             ),
           ),
+          const SizedBox(width: 16),
+          
+          GestureDetector(
+            onTap: () => _togglePrayerLog(name, time),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: checkboxColor,
+                border: Border.all(
+                  color: isChecked ? checkboxColor : Colors.grey.shade300,
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: isChecked
+                  ? const Icon(Icons.check, size: 16, color: Colors.white)
+                  : null,
+            ),
+          ),
+          
           const SizedBox(width: 4),
+          
+          // --- IKON NOTIFIKASI DINAMIS ---
           IconButton(
             icon: Icon(
-              isNotifActive ? Icons.notifications_active : Icons.notifications_none_outlined,
-              color: isNotifActive ? AppColors.emeraldGreen : Colors.grey.shade400,
+              notifStatus == 'audio' 
+                  ? Icons.notifications_active 
+                  : notifStatus == 'silent' 
+                      ? Icons.notifications 
+                      : Icons.notifications_off_outlined,
+              color: notifStatus == 'audio' 
+                  ? AppColors.emeraldGreen 
+                  : notifStatus == 'silent' 
+                      ? Colors.blue 
+                      : Colors.grey.shade400,
               size: 22,
             ),
             splashRadius: 20,
-            onPressed: () => _toggleNotification(name, time),
+            onPressed: () => _showNotificationOptions(name, time),
           ),
         ],
       ),

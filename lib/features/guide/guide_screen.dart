@@ -18,6 +18,34 @@ class _DzikirItem {
   });
 }
 
+// 1. DATA BARU: Model dan List untuk Tab Fikih
+class _FikihItem {
+  final String title, desc, content;
+  const _FikihItem({
+    required this.title,
+    required this.desc,
+    required this.content,
+  });
+}
+
+const List<_FikihItem> _fikihList = [
+  _FikihItem(
+    title: 'Shalat Jamak',
+    desc: 'Syarat dan tata cara menggabungkan dua shalat dalam satu waktu.',
+    content: 'Shalat Jamak adalah mengumpulkan dua shalat wajib dalam satu waktu.\n\n• Jamak Taqdim: Dilakukan di waktu shalat pertama (Dzuhur ditarik ke waktu Dzuhur bersama Ashar, atau Maghrib ditarik ke waktu Maghrib bersama Isya).\n• Jamak Takhir: Dilakukan di waktu shalat kedua.\n\nSyarat utamanya adalah safar (perjalanan jauh minimal ±80km) atau dalam keadaan darurat tertentu seperti sakit keras atau hujan lebat (untuk jamaah masjid).\n\nCatatan: Shalat Subuh TIDAK BISA dijamak dengan shalat apapun.',
+  ),
+  _FikihItem(
+    title: 'Shalat Qadha',
+    desc: 'Cara mengganti shalat yang terlewat atau tertinggal.',
+    content: 'Shalat Qadha dilakukan untuk mengganti kewajiban shalat yang terlewat, baik karena ketidaksengajaan (seperti tertidur pulas atau lupa) maupun kesengajaan (dosa besar yang wajib ditaubati).\n\nHukum mengqadha shalat wajib adalah Fardhu. Tidak ada waktu khusus untuk melakukan Qadha; sebaiknya dilakukan sesegera mungkin saat Anda teringat atau memiliki waktu luang.',
+  ),
+  _FikihItem(
+    title: 'Adab Beribadah',
+    desc: 'Etika dalam mempersiapkan diri sebelum menghadap Allah.',
+    content: 'Menghadap Sang Pencipta membutuhkan etika lahir dan batin:\n\n1. Menjaga Kesucian: Pastikan wudhu sempurna, tubuh, pakaian, dan tempat sujud bersih dari najis.\n2. Pakaian Terbaik: Gunakan pakaian yang sopan, menutup aurat dengan sempurna, dan tidak mengganggu pandangan (terlalu ketat/transparan).\n3. Tepat Waktu: Segerakan shalat di awal waktu jika tidak ada uzur syar\'i.\n4. Khusyuk: Hadirkan hati, pahami makna bacaan, dan hindari gerakan-gerakan yang tidak perlu (seperti menggaruk berlebihan atau melihat ke atas).',
+  ),
+];
+
 const List<_DzikirItem> _dzikirPagi = [
   _DzikirItem(
     title: 'Ayat Kursi',
@@ -248,7 +276,8 @@ class _GuideScreenState extends State<GuideScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    // 2. PERUBAHAN: Menjadi 4 Tab
+    _tabController = TabController(length: 4, vsync: this);
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text.toLowerCase().trim());
     });
@@ -278,6 +307,15 @@ class _GuideScreenState extends State<GuideScreen>
               d.arabic.contains(_searchQuery))
           .toList();
 
+  // 3. PENCARIAN FIKIH
+  List<_FikihItem> get _filteredFikih => _searchQuery.isEmpty
+      ? _fikihList
+      : _fikihList
+          .where((f) =>
+              f.title.toLowerCase().contains(_searchQuery) ||
+              f.desc.toLowerCase().contains(_searchQuery))
+          .toList();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -303,7 +341,7 @@ class _GuideScreenState extends State<GuideScreen>
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Cari panduan shalat, wudhu, doa, atau dzikir...',
+                hintText: 'Cari panduan shalat, wudhu, fikih...',
                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 prefixIcon: Icon(Icons.search, color: Colors.grey.shade400, size: 20),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -332,11 +370,12 @@ class _GuideScreenState extends State<GuideScreen>
               indicatorColor: AppColors.emeraldGreen,
               indicatorSize: TabBarIndicatorSize.label,
               labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              // 4. PERUBAHAN: Menambah Tab Fikih
               tabs: const [
                 Tab(icon: Icon(Icons.mosque, size: 18), text: 'Shalat'),
-
                 Tab(icon: Icon(Icons.menu_book, size: 18), text: 'Doa'),
                 Tab(icon: Icon(Icons.favorite, size: 18), text: 'Dzikir'),
+                Tab(icon: Icon(Icons.library_books, size: 18), text: 'Fikih'),
               ],
             ),
           ),
@@ -346,9 +385,10 @@ class _GuideScreenState extends State<GuideScreen>
               controller: _tabController,
               children: [
                 _buildShalatTab(),
-
                 _buildDoaTab(),
                 _buildDzikirTab(),
+                // 5. PERUBAHAN: Memanggil tampilan daftar Fikih
+                _buildFikihTab(), 
               ],
             ),
           ),
@@ -753,6 +793,152 @@ class _GuideScreenState extends State<GuideScreen>
       padding: const EdgeInsets.all(16),
       itemCount: items.length,
       itemBuilder: (context, i) => _DzikirCard(item: items[i]),
+    );
+  }
+
+  // 6. UI TAB FIKIH (BARU)
+  Widget _buildFikihTab() {
+    final fikihs = _filteredFikih;
+    if (fikihs.isEmpty) return _emptyState('Panduan Fikih tidak ditemukan');
+    
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: fikihs.length,
+      itemBuilder: (context, i) {
+        final f = fikihs[i];
+        return GestureDetector(
+          onTap: () => _showFikihDetail(context, f),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withAlpha(8),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2))
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.blueGrey.withAlpha(25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.library_books,
+                      color: Colors.blueGrey, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(f.title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Colors.black87)),
+                      const SizedBox(height: 4),
+                      Text(f.desc,
+                          style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // 7. BOTTOM SHEET DETAIL FIKIH (Sesuai Gaya Bottom Sheet Doa)
+  void _showFikihDetail(BuildContext context, _FikihItem fikih) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        builder: (_, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey.withAlpha(25),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.library_books,
+                          color: Colors.blueGrey, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        fikih.title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close, color: Colors.grey.shade400),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: Colors.grey.shade100),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    fikih.content,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Colors.black87,
+                      height: 1.7,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
