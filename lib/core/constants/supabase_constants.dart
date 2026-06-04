@@ -1,7 +1,9 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class SupabaseConstants {
-  // Ganti dengan Project URL yang Anda salin dari dasbor Supabase
-  static const String supabaseUrl = 'https://zoigvgrrkyibzgbufnzz.supabase.co';
-  
-  // Ganti dengan anon/public key yang Anda salin dari dasbor Supabase
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvaWd2Z3Jya3lpYnpnYnVmbnp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzOTI1MjYsImV4cCI6MjA5NDk2ODUyNn0.NaQ6rHkZGoa_bN8pQDsEY29-4mCH9SbxQTmCoeZVvzc';
+  // Mengambil Project URL secara aman dari file .env
+  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+
+  // Mengambil anon/public key secara aman dari file .env
+  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 }

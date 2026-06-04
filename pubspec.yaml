@@ -48,6 +48,7 @@ dependencies:
   image_picker: ^1.2.2
   image_cropper: ^12.2.1
   confetti: ^0.8.0
+  flutter_dotenv: ^6.0.1
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +77,7 @@ flutter:
     - assets/images/badge_3.png
     - assets/images/badge_4.png
     - assets/images/google_logo.png
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
