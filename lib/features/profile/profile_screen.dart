@@ -222,8 +222,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           setState(() => _isFetchingData = false);
         }
 
-        if (_profileData != null) {
-          ScaffoldMessenger.of(context).clearSnackBars(); // Hapus antrean pesan lama
+        if (_profileData != null && mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Koneksi terputus. Menampilkan data tersimpan.'),
             backgroundColor: Colors.orange,
@@ -509,8 +509,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                             content: Text('Profil berhasil diperbarui!'), backgroundColor: _kEmerald));
                       }
                     } catch (e) {
-                      ScaffoldMessenger.of(context).clearSnackBars();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e'), backgroundColor: Colors.red));
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e'), backgroundColor: Colors.red));
+                      }
                     } finally {
                       setModalState(() => isSaving = false);
                     }

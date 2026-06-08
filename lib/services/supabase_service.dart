@@ -24,14 +24,11 @@ class SupabaseService {
     }
     
     // 2. Memicu jendela login Google
-    final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();
+    final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
 
-    if (googleUser == null) {
-      throw 'Proses login dibatalkan oleh pengguna.';
-    }
 
     // 3. Ambil idToken (accessToken diabaikan karena tidak otomatis tersedia di v7)
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth = googleUser.authentication;
     final idToken = googleAuth.idToken;
 
     if (idToken == null) {
