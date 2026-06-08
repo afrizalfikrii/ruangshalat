@@ -12,6 +12,8 @@ import 'package:ruang_shalat/services/notification_service.dart';
 import 'package:ruang_shalat/services/hijri_service.dart';
 import 'package:ruang_shalat/features/qibla/qibla_ar_screen.dart';
 import 'package:ruang_shalat/features/calendar/hijri_calendar_screen.dart';
+import 'package:adhan/adhan.dart';
+import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,6 +51,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String _currentKotaId = '1411';
   String _currentKotaName = 'Mencari lokasi...';
   String _todayHijri = '';
+  
+  double? _lastLat;
+  double? _lastLng;
 
   @override
   void initState() {
@@ -351,6 +356,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentKotaId = savedKotaId;
         _currentKotaName = savedKotaName;
       }
+      
+      _lastLat = _prefs?.getDouble('lastLat');
+      _lastLng = _prefs?.getDouble('lastLng');
     });
   }
 
@@ -530,6 +538,11 @@ class _HomeScreenState extends State<HomeScreen> {
             timeLimit: Duration(seconds: 10),
           ));
 
+      _lastLat = position.latitude;
+      _lastLng = position.longitude;
+      await _prefs?.setDouble('lastLat', _lastLat!);
+      await _prefs?.setDouble('lastLng', _lastLng!);
+
       List<Placemark> placemarks = await placemarkFromCoordinates(
           position.latitude, position.longitude);
 
@@ -563,16 +576,60 @@ class _HomeScreenState extends State<HomeScreen> {
     await _fetchSchedule();
   }
 
+  PrayerSchedule? _getOfflineSchedule(double lat, double lng, DateTime date) {
+    try {
+      final coordinates = Coordinates(lat, lng);
+      // Gunakan parameter Singapore (yang paling mendekati wilayah Asia Tenggara/Indonesia)
+      final params = CalculationMethod.singapore.getParameters();
+      params.madhab = Madhab.shafi;
+      
+      final prayerTimes = PrayerTimes.today(coordinates, params);
+      final f = DateFormat('HH:mm');
+      
+      return PrayerSchedule(
+        imsak: f.format(prayerTimes.fajr.subtract(const Duration(minutes: 10))),
+        subuh: f.format(prayerTimes.fajr),
+        terbit: f.format(prayerTimes.sunrise),
+        dhuha: f.format(prayerTimes.sunrise.add(const Duration(minutes: 20))),
+        dzuhur: f.format(prayerTimes.dhuhr),
+        ashar: f.format(prayerTimes.asr),
+        maghrib: f.format(prayerTimes.maghrib),
+        isya: f.format(prayerTimes.isha),
+        tanggal: DateFormat('yyyy-MM-dd').format(date),
+        date: DateFormat('yyyy-MM-dd').format(date),
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<void> _fetchSchedule() async {
     if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
-    final schedule = await MyQuranService.getPrayerSchedule(
+    
+    PrayerSchedule? schedule = await MyQuranService.getPrayerSchedule(
       kotaId: _currentKotaId,
       date: DateTime.now(),
     );
+    
+    // --- OFFLINE FALLBACK ---
+    if (schedule == null && _lastLat != null && _lastLng != null) {
+       schedule = _getOfflineSchedule(_lastLat!, _lastLng!, DateTime.now());
+       if (schedule != null && mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(
+             content: Text('Tidak ada internet. Menampilkan jadwal sholat offline.'),
+             backgroundColor: Colors.orange,
+             behavior: SnackBarBehavior.floating,
+             duration: Duration(seconds: 3),
+           ),
+         );
+       }
+    }
+
     if (!mounted) return;
     setState(() {
       _schedule = schedule;

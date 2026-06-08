@@ -49,6 +49,7 @@ dependencies:
   image_cropper: ^12.2.1
   confetti: ^0.8.0
   flutter_dotenv: ^6.0.1
+  adhan: ^2.0.0+1
 
 dev_dependencies:
   flutter_test:
