@@ -48,13 +48,24 @@ class _QuranScreenState extends State<QuranScreen> {
         backgroundColor: Colors.white,
         elevation: 0.5,
         titleSpacing: 16,
-        title: const Text(
-          'Al-Quran',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/logo_ruangshalat.png',
+              height: 28,
+              width: 28,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Al-Quran',
+              style: TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
         ),
         actions: [
           Padding(

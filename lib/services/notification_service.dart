@@ -82,18 +82,18 @@ class NotificationService {
 
     if (status == 'audio') {
       if (prayerName == 'Subuh') {
-        channelId = 'adzan_subuh_channel';
+        channelId = 'adzan_subuh_alarm_channel';
         channelName = 'Adzan Subuh';
         channelDesc = 'Notifikasi dengan lafaz adzan Subuh';
         sound = const RawResourceAndroidNotificationSound('adzan_subuh');
       } else {
-        channelId = 'adzan_standard_channel';
+        channelId = 'adzan_standard_alarm_channel';
         channelName = 'Adzan Standar';
         channelDesc = 'Notifikasi dengan lafaz adzan standar';
         sound = const RawResourceAndroidNotificationSound('adzan');
       }
     } else {
-      channelId = 'silent_channel';
+      channelId = 'silent_alarm_channel';
       channelName = 'Notifikasi Senyap';
       channelDesc = 'Notifikasi getar tanpa suara';
       sound = null;
@@ -109,6 +109,8 @@ class NotificationService {
       playSound: playSound,
       sound: sound,
       enableVibration: true,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      category: AndroidNotificationCategory.alarm,
     );
 
     // Untuk iOS (Opsional, jika Anda mengembangkan ke iPhone nantinya)

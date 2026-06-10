@@ -14,7 +14,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
     <application
-        android:label="ruang_shalat"
+        android:label="ruangShalat"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

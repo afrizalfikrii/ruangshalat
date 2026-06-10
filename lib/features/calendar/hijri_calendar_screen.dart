@@ -93,21 +93,34 @@ class _HijriCalendarScreenState extends State<HijriCalendarScreen> {
         backgroundColor: AppColors.emeraldGreen,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Column(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Kalender Hijriah',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-              ),
+            Image.asset(
+              'assets/images/logo_ruangshalat.png',
+              height: 28,
+              width: 28,
             ),
-            if (todayInfo != null)
-              Text(
-                todayInfo.hijriFullDate,
-                style: const TextStyle(color: Colors.white70, fontSize: 11),
-              ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Kalender Hijriah',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
+                ),
+                if (todayInfo != null)
+                  Text(
+                    todayInfo.hijriFullDate,
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+              ],
+            ),
           ],
         ),
         centerTitle: true,

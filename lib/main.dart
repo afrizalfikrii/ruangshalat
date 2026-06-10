@@ -35,7 +35,7 @@ class RuangShalatApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Ruang Shalat',
+      title: 'ruangShalat',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       scrollBehavior: const NoOverscrollBehavior(),

@@ -62,6 +62,12 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         ),
         title: Row(
           children: [
+            Image.asset(
+              'assets/images/logo_ruangshalat.png',
+              height: 28,
+              width: 28,
+            ),
+            const SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,

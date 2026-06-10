@@ -732,8 +732,19 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             automaticallyImplyLeading: false,
             expandedHeight: 0,
             titleSpacing: 24,
-            title: const Text('PROFIL SAYA',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 2.8)),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  'assets/images/logo_ruangshalat.png',
+                  height: 24,
+                  width: 24,
+                ),
+                const SizedBox(width: 8),
+                const Text('PROFIL SAYA',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 2.8)),
+              ],
+            ),
             centerTitle: false,
             actions: [
               PopupMenuButton<String>(

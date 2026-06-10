@@ -27,7 +27,18 @@ class PanduanScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Panduan Fikih', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/logo_ruangshalat.png',
+              height: 28,
+              width: 28,
+            ),
+            const SizedBox(width: 8),
+            const Text('Panduan Fikih', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         elevation: 0.5,
@@ -67,7 +78,23 @@ class DetailPanduanScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(item['title']!), backgroundColor: Colors.white, foregroundColor: Colors.black87, elevation: 0.5),
+      appBar: AppBar(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/logo_ruangshalat.png',
+              height: 28,
+              width: 28,
+            ),
+            const SizedBox(width: 8),
+            Text(item['title']!),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0.5,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Text(

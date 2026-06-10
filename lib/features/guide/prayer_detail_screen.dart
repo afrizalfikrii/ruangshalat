@@ -64,6 +64,12 @@ class _PrayerDetailScreenState extends State<PrayerDetailScreen>
               child: Icon(widget.icon, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
+            Image.asset(
+              'assets/images/logo_ruangshalat.png',
+              height: 28,
+              width: 28,
+            ),
+            const SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,

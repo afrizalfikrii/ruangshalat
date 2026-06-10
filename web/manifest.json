@@ -1,6 +1,6 @@
 {
-    "name": "ruang_shalat",
-    "short_name": "ruang_shalat",
+    "name": "ruangShalat",
+    "short_name": "ruangShalat",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
@@ -31,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   SharedPreferences? _prefs;
   
-  // Status notifikasi diubah menjadi String: 'audio', 'silent', 'off'
   final Map<String, String> _notificationSettings = {
     'Subuh': 'off',
     'Dzuhur': 'off',
@@ -58,10 +58,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initPrefs();
-    _initLocationAndFetchSchedule();
-    _fetchTodayHijri();
-    _fetchDailyLog();
+    _initPrefs().then((_) {
+      _initLocationAndFetchSchedule();
+      _fetchTodayHijri();
+      _fetchDailyLog();
+    });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_schedule != null && mounted) {
@@ -70,7 +71,38 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _syncPendingLogs() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final todayStr = DateTime.now().toIso8601String().split('T')[0];
+    final isPending = _prefs?.getBool('pending_sync_${user.id}_$todayStr') ?? false;
+
+    if (isPending) {
+      final savedLogStr = _prefs?.getString('offline_daily_log_${user.id}');
+      if (savedLogStr != null) {
+        try {
+          final savedData = jsonDecode(savedLogStr);
+          await Supabase.instance.client.from('daily_logs').upsert({
+            'user_id': user.id,
+            'log_date': todayStr,
+            'subuh': savedData['subuh'],
+            'dzuhur': savedData['dzuhur'],
+            'asar': savedData['asar'],
+            'maghrib': savedData['maghrib'],
+            'isya': savedData['isya'],
+          }, onConflict: 'user_id, log_date');
+          
+          await _prefs?.remove('pending_sync_${user.id}_$todayStr');
+          debugPrint('SINKRONISASI OFFLINE BERHASIL DIKIRIM');
+        } catch (_) {}
+      }
+    }
+  }
+
   Future<void> _fetchDailyLog() async {
+    await _syncPendingLogs();
+
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
@@ -81,19 +113,38 @@ class _HomeScreenState extends State<HomeScreen> {
           .select()
           .eq('user_id', user.id)
           .eq('log_date', today)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 3)); 
 
-      if (data != null && mounted) {
-        setState(() {
-          _prayerLogs['Subuh'] = data['subuh'];
-          _prayerLogs['Dzuhur'] = data['dzuhur'];
-          _prayerLogs['Ashar'] = data['asar'];
-          _prayerLogs['Maghrib'] = data['maghrib'];
-          _prayerLogs['Isya'] = data['isya'];
-        });
+      if (data != null) {
+        await _prefs?.setString('offline_daily_log_${user.id}', jsonEncode(data));
+        
+        if (mounted) {
+          setState(() {
+            _prayerLogs['Subuh'] = data['subuh'];
+            _prayerLogs['Dzuhur'] = data['dzuhur'];
+            _prayerLogs['Ashar'] = data['asar'];
+            _prayerLogs['Maghrib'] = data['maghrib'];
+            _prayerLogs['Isya'] = data['isya'];
+          });
+        }
       }
     } catch (e) {
-      debugPrint('Error memuat log ibadah: $e');
+      final savedLogStr = _prefs?.getString('offline_daily_log_${user.id}');
+      if (savedLogStr != null && mounted) {
+        try {
+          final savedData = jsonDecode(savedLogStr);
+          if (savedData['log_date'] == today) {
+            setState(() {
+              _prayerLogs['Subuh'] = savedData['subuh'];
+              _prayerLogs['Dzuhur'] = savedData['dzuhur'];
+              _prayerLogs['Ashar'] = savedData['asar'];
+              _prayerLogs['Maghrib'] = savedData['maghrib'];
+              _prayerLogs['Isya'] = savedData['isya'];
+            });
+          }
+        } catch (_) {}
+      }
     }
   }
 
@@ -226,16 +277,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // ==============================================================================
-  // --- FUNGSI UPDATE: MENYIMPAN LOG DAN MENGHITUNG STREAK/POIN SECARA OTOMATIS --
-  // ==============================================================================
   Future<void> _saveLogToSupabase(String name, String? status) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
     final previousStatus = _prayerLogs[name];
 
-    // Update UI Lokal
     setState(() {
       _prayerLogs[name] = status;
     });
@@ -244,8 +291,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final todayStr = today.toIso8601String().split('T')[0];
     final yesterdayStr = today.subtract(const Duration(days: 1)).toIso8601String().split('T')[0];
 
+    final localData = {
+      'log_date': todayStr,
+      'subuh': _prayerLogs['Subuh'],
+      'dzuhur': _prayerLogs['Dzuhur'],
+      'asar': _prayerLogs['Ashar'],
+      'maghrib': _prayerLogs['Maghrib'],
+      'isya': _prayerLogs['Isya'],
+    };
+    await _prefs?.setString('offline_daily_log_${user.id}', jsonEncode(localData));
+
     try {
-      // 1. Simpan Log Shalat Harian
       await Supabase.instance.client.from('daily_logs').upsert({
         'user_id': user.id,
         'log_date': todayStr,
@@ -256,14 +312,12 @@ class _HomeScreenState extends State<HomeScreen> {
         'isya': _prayerLogs['Isya'],
       }, onConflict: 'user_id, log_date');
 
-      // 2. Ambil Profil Saat Ini untuk kalkulasi Poin dan Streak
       final profile = await Supabase.instance.client.from('profiles').select().eq('id', user.id).single();
       
       int currentStreak = profile['current_streak'] ?? 0;
       int longestStreak = profile['longest_streak'] ?? 0;
       int totalPoints = profile['total_points'] ?? 0;
 
-      // Cek kelengkapan hari kemarin
       final yesterdayLog = await Supabase.instance.client
           .from('daily_logs')
           .select()
@@ -280,57 +334,95 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
-      // HUKUMAN: Reset Streak jika kemarin bolong (dan bukan streak awal/0)
       if (!wasYesterdayComplete && currentStreak > 0) {
         currentStreak = 0; 
       }
 
-      // Cek kelengkapan hari ini
       bool isTodayComplete = _prayerLogs['Subuh'] != null && _prayerLogs['Dzuhur'] != null && 
                              _prayerLogs['Ashar'] != null && _prayerLogs['Maghrib'] != null && 
                              _prayerLogs['Isya'] != null;
 
-      // REWARD: Jika hari ini komplit DAN sebelumnya statusnya null (baru ditambahkan, bukan mengedit)
-      // Ini mencegah eksploitasi di mana user terus mengubah status shalat yang sama untuk menaikkan poin/streak.
       if (isTodayComplete && status != null && previousStatus == null) {
         currentStreak += 1;
         totalPoints += 50; 
-
         if (currentStreak > longestStreak) {
           longestStreak = currentStreak; 
         }
       } 
-      // Jika pengguna membatalkan shalat terakhir (menjadi tidak lengkap), kurangi streak agar adil.
       else if (!isTodayComplete && status == null && currentStreak > 0) {
-        // Asumsi: jika sebelumnya dia mencabut komplitnya, maka kita kurangi 1.
-        // Poin bisa tetap, atau Anda bisa mengatur logika pengurangan poin. Untuk saat ini kita kurangi streak.
         currentStreak -= 1;
       }
 
-      // 3. Simpan Kalkulasi Gamifikasi ke Tabel Profil
       await Supabase.instance.client.from('profiles').update({
         'current_streak': currentStreak,
         'longest_streak': longestStreak,
         'total_points': totalPoints,
       }).eq('id', user.id);
+      
+      await _prefs?.remove('pending_sync_${user.id}_$todayStr');
+      _fetchDailyLog();
 
     } catch (e) {
-      // Revert UI jika gagal
-      setState(() {
-        _prayerLogs[name] = previousStatus;
-      });
+      await _prefs?.setBool('pending_sync_${user.id}_$todayStr', true);
+      
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan catatan: $e')),
+          const SnackBar(
+            content: Text('Menyimpan lokal. Progres akan disinkronisasi saat kembali online.'),
+            backgroundColor: AppColors.gold,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 3),
+          ),
         );
       }
     }
   }
 
   Future<void> _fetchTodayHijri() async {
-    final info = await HijriService.getTodayHijri();
-    if (info != null && mounted) {
-      setState(() => _todayHijri = info.hijriFullDate);
+    try {
+      final info = await HijriService.getTodayHijri();
+      if (info != null && mounted) {
+        setState(() => _todayHijri = info.hijriFullDate);
+        await _prefs?.setString('offline_hijri_date', info.hijriFullDate);
+        await _prefs?.setString('offline_hijri_fetch_date', DateTime.now().toIso8601String());
+      } else {
+        _loadOfflineHijri();
+      }
+    } catch (e) {
+      _loadOfflineHijri();
+    }
+  }
+  
+  void _loadOfflineHijri() {
+    final savedHijri = _prefs?.getString('offline_hijri_date');
+    final savedFetchDateStr = _prefs?.getString('offline_hijri_fetch_date');
+
+    if (savedHijri != null && savedFetchDateStr != null && mounted) {
+      try {
+        final savedDate = DateTime.parse(savedFetchDateStr);
+        final now = DateTime.now();
+        final diffDays = DateTime(now.year, now.month, now.day).difference(DateTime(savedDate.year, savedDate.month, savedDate.day)).inDays;
+
+        if (diffDays == 0) {
+          setState(() => _todayHijri = savedHijri);
+        } else {
+          final parts = savedHijri.split(' ');
+          if (parts.isNotEmpty) {
+            int? day = int.tryParse(parts[0]);
+            if (day != null) {
+              int newDay = day + diffDays;
+              if (newDay > 30) newDay = newDay % 30;
+              parts[0] = newDay.toString();
+              setState(() => _todayHijri = '${parts.join(' ')} (Estimasi Offline)');
+            } else {
+              setState(() => _todayHijri = savedHijri);
+            }
+          }
+        }
+      } catch (_) {
+        setState(() => _todayHijri = savedHijri);
+      }
     }
   }
 
@@ -340,7 +432,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // --- MIGRASI & BACA PENGATURAN NOTIFIKASI ---
   Future<void> _initPrefs() async {
     _prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -369,17 +460,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final newStatus = _prefs?.getString(newKey);
     if (newStatus != null) return newStatus;
     
-    // Migrasi data lama dari boolean ke string (default: silent jika dulu aktif)
     try {
       final oldStatus = _prefs?.getBool(oldKey);
       if (oldStatus == true) return 'silent'; 
     } catch (e) {
-      // Abaikan jika error
     }
     return 'off';
   }
 
-  // --- MENU PILIHAN STATUS NOTIFIKASI (BOTTOM SHEET) ---
   Future<void> _showNotificationOptions(String prayerName, String time) async {
     final currentStatus = _notificationSettings[prayerName] ?? 'off';
     final isSubuh = prayerName == 'Subuh';
@@ -500,7 +588,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (_prefs?.getString('kotaId') != null) {
       await _fetchSchedule();
-      _forceUpdateLocation();
+      _forceUpdateLocation(); 
       return;
     }
 
@@ -512,7 +600,9 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _loading = true;
       _error = null;
-      _currentKotaName = 'Mencari lokasi...';
+      if (_currentKotaName == 'Karanganyar' || _currentKotaName == 'Mencari lokasi...') {
+        _currentKotaName = 'Mencari lokasi...';
+      }
     });
 
     try {
@@ -558,6 +648,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
         List<KotaResult> searchResults =
             await MyQuranService.searchKota(cityName);
+            
+        // --- PERBAIKAN: Jika hasil API tidak kosong, simpan kota baru ---
         if (searchResults.isNotEmpty) {
           _currentKotaId = searchResults.first.id;
           _currentKotaName = searchResults.first.lokasi;
@@ -565,12 +657,29 @@ class _HomeScreenState extends State<HomeScreen> {
           await _prefs?.setString('kotaId', _currentKotaId);
           await _prefs?.setString('kotaName', _currentKotaName);
         } else {
-          _currentKotaName = cityName;
+          // --- PERBAIKAN: Jika API kosong (krn offline), ambil dari memori HP ---
+          final savedKotaId = _prefs?.getString('kotaId');
+          final savedKotaName = _prefs?.getString('kotaName');
+          
+          if (savedKotaId != null && savedKotaName != null) {
+            _currentKotaId = savedKotaId;
+            _currentKotaName = savedKotaName; // Mengembalikan ke "KAB. SUKOHARJO"
+          } else {
+            _currentKotaName = cityName;
+          }
         }
       }
     } catch (e) {
-      _currentKotaId = '1411';
-      _currentKotaName = 'Karanganyar';
+      final savedKotaId = _prefs?.getString('kotaId');
+      final savedKotaName = _prefs?.getString('kotaName');
+      
+      if (savedKotaId != null && savedKotaName != null) {
+        _currentKotaId = savedKotaId;
+        _currentKotaName = savedKotaName;
+      } else {
+        _currentKotaId = '1411';
+        _currentKotaName = 'Karanganyar';
+      }
     }
 
     await _fetchSchedule();
@@ -579,7 +688,6 @@ class _HomeScreenState extends State<HomeScreen> {
   PrayerSchedule? _getOfflineSchedule(double lat, double lng, DateTime date) {
     try {
       final coordinates = Coordinates(lat, lng);
-      // Gunakan parameter Singapore (yang paling mendekati wilayah Asia Tenggara/Indonesia)
       final params = CalculationMethod.singapore.getParameters();
       params.madhab = Madhab.shafi;
       
@@ -615,13 +723,13 @@ class _HomeScreenState extends State<HomeScreen> {
       date: DateTime.now(),
     );
     
-    // --- OFFLINE FALLBACK ---
     if (schedule == null && _lastLat != null && _lastLng != null) {
        schedule = _getOfflineSchedule(_lastLat!, _lastLng!, DateTime.now());
        if (schedule != null && mounted) {
+         ScaffoldMessenger.of(context).clearSnackBars();
          ScaffoldMessenger.of(context).showSnackBar(
            const SnackBar(
-             content: Text('Tidak ada internet. Menampilkan jadwal sholat offline.'),
+             content: Text('Tidak ada internet. Menampilkan jadwal & lokasi terakhir.'),
              backgroundColor: Colors.orange,
              behavior: SnackBarBehavior.floating,
              duration: Duration(seconds: 3),
@@ -638,7 +746,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (schedule != null) _remaining = schedule.durationUntilNext();
     });
     
-    _fetchDailyLog(); // Reload status tiap update lokasi
+    _fetchDailyLog(); 
   }
 
   String _twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -650,14 +758,25 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0.5,
-        title: const Text(
-          'ruangShalat',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-            letterSpacing: -0.5,
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/images/logo_ruangshalat.png',
+              height: 28,
+              width: 28,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'ruangShalat',
+              style: TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
         ),
       ),
       body: RefreshIndicator(
@@ -679,6 +798,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           GestureDetector(
                             onTap: () {
+                              ScaffoldMessenger.of(context).clearSnackBars();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                     content: Text('Memperbarui lokasi GPS...')),
@@ -1019,7 +1139,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final logStatus = _prayerLogs[name];
     final isChecked = logStatus != null; 
     
-    // Mengambil status notifikasi
     final notifStatus = _notificationSettings[name] ?? 'off';
 
     final dotColor = isNext
@@ -1133,7 +1252,6 @@ class _HomeScreenState extends State<HomeScreen> {
           
           const SizedBox(width: 4),
           
-          // --- IKON NOTIFIKASI DINAMIS ---
           IconButton(
             icon: Icon(
               notifStatus == 'audio' 
