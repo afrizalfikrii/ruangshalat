@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Tambahan Import
 import 'package:ruang_shalat/core/constants/app_colors.dart';
 import 'package:ruang_shalat/services/qibla_service.dart';
 
@@ -43,6 +44,23 @@ class _QiblaSheetState extends State<QiblaSheet>
     super.dispose();
   }
 
+  // --- RUMUS MATEMATIKA KIBLAT OFFLINE ---
+  double _calculateOfflineQibla(double lat, double lng) {
+    const double meccaLat = 21.422487 * math.pi / 180.0;
+    const double meccaLng = 39.826206 * math.pi / 180.0;
+    final double userLat = lat * math.pi / 180.0;
+    final double userLng = lng * math.pi / 180.0;
+
+    final double diffLng = meccaLng - userLng;
+
+    final double y = math.sin(diffLng);
+    final double x = math.cos(userLat) * math.tan(meccaLat) - 
+                     math.sin(userLat) * math.cos(diffLng);
+
+    double qibla = math.atan2(y, x) * 180.0 / math.pi;
+    return (qibla + 360.0) % 360.0;
+  }
+
   Future<void> _initQibla() async {
     final stream = FlutterCompass.events;
     if (stream == null) {
@@ -54,48 +72,54 @@ class _QiblaSheetState extends State<QiblaSheet>
       return;
     }
 
+    double? finalLat;
+    double? finalLng;
+
     try {
       Position? position = await Geolocator.getLastKnownPosition();
       position ??= await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 10),
+          timeLimit: Duration(seconds: 5),
         ),
       );
-
-      final direction = await QiblaService.getQiblaDirection(
-        position.latitude,
-        position.longitude,
-      );
-
-      if (!mounted) return;
-      if (direction == null) {
-        setState(() {
-          _loading = false;
-          _error = 'Gagal mengambil data kiblat.\nPeriksa koneksi internet.';
-        });
-        return;
-      }
-
-      setState(() {
-        _qiblaDirection = direction;
-        _loading = false;
-      });
-
-      stream.listen((event) {
-        if (mounted && event.heading != null) {
-          setState(() {
-            _compassHeading = event.heading!;
-          });
-        }
-      });
+      finalLat = position.latitude;
+      finalLng = position.longitude;
     } catch (e) {
+      final prefs = await SharedPreferences.getInstance();
+      finalLat = prefs.getDouble('lastLat');
+      finalLng = prefs.getDouble('lastLng');
+    }
+
+    if (finalLat == null || finalLng == null) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Gagal mendapatkan lokasi GPS.\nPastikan GPS aktif.';
+        _error = 'Gagal mendapatkan lokasi.\nBuka halaman Beranda saat online sekali saja.';
       });
+      return;
     }
+
+    double? direction;
+    try {
+      direction = await QiblaService.getQiblaDirection(finalLat, finalLng);
+    } catch (_) {}
+
+    direction ??= _calculateOfflineQibla(finalLat, finalLng);
+
+    if (!mounted) return;
+    setState(() {
+      _qiblaDirection = direction;
+      _loading = false;
+    });
+
+    stream.listen((event) {
+      if (mounted && event.heading != null) {
+        setState(() {
+          _compassHeading = event.heading!;
+        });
+      }
+    });
   }
 
   double get _qiblaRotation {

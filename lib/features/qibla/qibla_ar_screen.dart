@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Tambahan Import
 import 'package:ruang_shalat/core/constants/app_colors.dart';
 import 'package:ruang_shalat/services/qibla_service.dart';
 
@@ -96,6 +97,23 @@ class _QiblaArScreenState extends State<QiblaArScreen>
     }
   }
 
+  // --- RUMUS MATEMATIKA KIBLAT OFFLINE ---
+  double _calculateOfflineQibla(double lat, double lng) {
+    const double meccaLat = 21.422487 * math.pi / 180.0;
+    const double meccaLng = 39.826206 * math.pi / 180.0;
+    final double userLat = lat * math.pi / 180.0;
+    final double userLng = lng * math.pi / 180.0;
+
+    final double diffLng = meccaLng - userLng;
+
+    final double y = math.sin(diffLng);
+    final double x = math.cos(userLat) * math.tan(meccaLat) - 
+                     math.sin(userLat) * math.cos(diffLng);
+
+    double qibla = math.atan2(y, x) * 180.0 / math.pi;
+    return (qibla + 360.0) % 360.0;
+  }
+
   Future<void> _initQibla() async {
     if (FlutterCompass.events == null) {
       setState(() {
@@ -106,56 +124,66 @@ class _QiblaArScreenState extends State<QiblaArScreen>
       return;
     }
 
+    double? finalLat;
+    double? finalLng;
+
     try {
+      // 1. Coba ambil GPS langsung
       Position? position = await Geolocator.getLastKnownPosition();
       position ??= await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 10),
+          timeLimit: Duration(seconds: 5),
         ),
       );
-
-      final direction = await QiblaService.getQiblaDirection(
-        position.latitude,
-        position.longitude,
-      );
-
-      if (!mounted) return;
-      if (direction == null) {
-        setState(() {
-          _loading = false;
-          _error = 'Gagal mengambil data kiblat.\nPeriksa koneksi internet.';
-        });
-        return;
-      }
-
-      setState(() {
-        _qiblaDirection = direction;
-        _loading = false;
-      });
-
-      _compassSub = FlutterCompass.events!.listen((event) {
-        if (!mounted || event.heading == null) return;
-        final newHeading = event.heading!;
-        setState(() => _compassHeading = newHeading);
-
-        if (_qiblaDirection != null) {
-          double diff = (_qiblaDirection! - newHeading).abs() % 360;
-          if (diff > 180) diff = 360 - diff;
-          if (diff <= 5.0) {
-            _alignedAnim.forward();
-          } else {
-            _alignedAnim.reverse();
-          }
-        }
-      });
+      finalLat = position.latitude;
+      finalLng = position.longitude;
     } catch (e) {
+      // 2. Jika GPS gagal/offline, bongkar memori terakhir
+      final prefs = await SharedPreferences.getInstance();
+      finalLat = prefs.getDouble('lastLat');
+      finalLng = prefs.getDouble('lastLng');
+    }
+
+    if (finalLat == null || finalLng == null) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Gagal mendapatkan lokasi GPS.\nPastikan GPS aktif.';
+        _error = 'Gagal mendapatkan lokasi.\nBuka halaman Beranda saat online sekali saja.';
       });
+      return;
     }
+
+    double? direction;
+    try {
+      // 3. Coba hitung via Service/API (jika ada internet)
+      direction = await QiblaService.getQiblaDirection(finalLat, finalLng);
+    } catch (_) {}
+
+    // 4. Jaring Pengaman Offline: Jika API gagal, hitung matematis di HP
+    direction ??= _calculateOfflineQibla(finalLat, finalLng);
+
+    if (!mounted) return;
+    setState(() {
+      _qiblaDirection = direction;
+      _loading = false;
+    });
+
+    _compassSub = FlutterCompass.events!.listen((event) {
+      if (!mounted || event.heading == null) return;
+      final newHeading = event.heading!;
+      setState(() => _compassHeading = newHeading);
+
+      if (_qiblaDirection != null) {
+        double diff = (_qiblaDirection! - newHeading).abs() % 360;
+        if (diff > 180) diff = 360 - diff;
+        if (diff <= 5.0) {
+          _alignedAnim.forward();
+        } else {
+          _alignedAnim.reverse();
+        }
+      }
+    });
   }
 
   double get _ringRotation => -_compassHeading * (math.pi / 180);
